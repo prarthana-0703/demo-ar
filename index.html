@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>AR Wedding Invitation</title>
+  <title>AR Wedding Invitation - 3D Buttons</title>
 
   <!-- Compatible versions -->
   <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
@@ -48,49 +48,55 @@
     <!-- MAIN GROUP -->
     <a-entity position="0 0 0">
 
-      <!-- ROTATING CUBE -->
+      <!-- ROTATING CUBE (Placeholder for bride & groom model) -->
       <a-box
-        position="0 0.6 0"
+        position="0 0.7 0"
         scale="0.5 0.5 0.5"
         color="cyan"
         animation="property: rotation; to: 0 360 0; loop: true; dur: 3000">
       </a-box>
 
-      <!-- MENU BUTTON -->
-      <a-plane
+      <!-- 3D MENU BUTTON -->
+      <a-box
         class="clickable"
         position="0 0.25 -0.5"
-        rotation="-90 0 0"
-        width="0.8"
-        height="0.3"
+        width="0.9"
+        height="0.15"
+        depth="0.4"
         color="#4CAF50"
-        button-action="menu">
+        button-action="menu"
+        animation__hover="property: scale; to: 1.05 1.05 1.05; startEvents: mouseenter"
+        animation__out="property: scale; to: 1 1 1; startEvents: mouseleave">
+        
         <a-text
           value="Menu"
           align="center"
           color="white"
-          position="0 0 0.01"
-          scale="1.2 1.2 1.2">
+          position="0 0.1 0.21"
+          scale="1.5 1.5 1.5">
         </a-text>
-      </a-plane>
+      </a-box>
 
-      <!-- LOCATION BUTTON -->
-      <a-plane
+      <!-- 3D LOCATION BUTTON -->
+      <a-box
         class="clickable"
-        position="0 -0.15 -0.5"
-        rotation="-90 0 0"
-        width="0.8"
-        height="0.3"
+        position="0 -0.05 -0.5"
+        width="0.9"
+        height="0.15"
+        depth="0.4"
         color="#2196F3"
-        button-action="location">
+        button-action="location"
+        animation__hover="property: scale; to: 1.05 1.05 1.05; startEvents: mouseenter"
+        animation__out="property: scale; to: 1 1 1; startEvents: mouseleave">
+        
         <a-text
           value="Location"
           align="center"
           color="white"
-          position="0 0 0.01"
-          scale="1.2 1.2 1.2">
+          position="0 0.1 0.21"
+          scale="1.5 1.5 1.5">
         </a-text>
-      </a-plane>
+      </a-box>
 
     </a-entity>
 
