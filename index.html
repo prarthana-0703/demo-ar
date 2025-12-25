@@ -1,19 +1,28 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>AR Wedding Buttons</title>
+  <title>AR Wedding Invitation</title>
 
+  <!-- Compatible versions -->
   <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/3.3.2/aframe/build/aframe-ar.js"></script>
 
+  <!-- Button click logic -->
   <script>
     AFRAME.registerComponent("button-action", {
       schema: { type: "string" },
       init: function () {
         this.el.addEventListener("click", () => {
           if (this.data === "menu") {
-            alert("🍽 Wedding Menu:\nStarter\nMain Course\nDessert");
+            alert(
+              "🍽 Wedding Menu\n\n" +
+              "• Welcome Drink\n" +
+              "• Starters\n" +
+              "• Main Course\n" +
+              "• Desserts"
+            );
           }
+
           if (this.data === "location") {
             window.open(
               "https://www.google.com/maps?q=18.5204,73.8567",
@@ -33,52 +42,59 @@
   arjs="sourceType: webcam; debugUIEnabled: false;"
   vr-mode-ui="enabled:false">
 
-  <!-- Hiro Marker -->
-  <a-marker preset="hiro">
+  <!-- HIRO MARKER -->
+  <a-marker preset="hiro" smooth="true">
 
-    <!-- Main 3D Object -->
-    <a-box
-      position="0 0.5 0"
-      scale="0.5 0.5 0.5"
-      color="cyan"
-      animation="property: rotation; to: 0 360 0; loop: true; dur: 3000">
-    </a-box>
+    <!-- GROUP (cube + buttons) -->
+    <a-entity position="0 0 0">
 
-    <!-- MENU BUTTON -->
-    <a-plane
-      class="clickable"
-      position="-0.35 0 0.5"
-      width="0.6"
-      height="0.25"
-      color="#4CAF50"
-      button-action="menu">
-      <a-text
-        value="Menu"
-        align="center"
-        color="white"
-        position="0 0 0.01">
-      </a-text>
-    </a-plane>
+      <!-- ROTATING CUBE -->
+      <a-box
+        position="0 0.5 0"
+        scale="0.5 0.5 0.5"
+        color="cyan"
+        animation="property: rotation; to: 0 360 0; loop: true; dur: 3000">
+      </a-box>
 
-    <!-- LOCATION BUTTON -->
-    <a-plane
-      class="clickable"
-      position="0.35 0 0.5"
-      width="0.6"
-      height="0.25"
-      color="#2196F3"
-      button-action="location">
-      <a-text
-        value="Location"
-        align="center"
-        color="white"
-        position="0 0 0.01">
-      </a-text>
-    </a-plane>
+      <!-- MENU BUTTON -->
+      <a-plane
+        class="clickable"
+        position="0 0.2 -0.3"
+        rotation="-90 0 0"
+        width="0.7"
+        height="0.25"
+        color="#4CAF50"
+        button-action="menu">
+        <a-text
+          value="Menu"
+          align="center"
+          color="white"
+          position="0 0 0.01">
+        </a-text>
+      </a-plane>
+
+      <!-- LOCATION BUTTON -->
+      <a-plane
+        class="clickable"
+        position="0 -0.05 -0.3"
+        rotation="-90 0 0"
+        width="0.7"
+        height="0.25"
+        color="#2196F3"
+        button-action="location">
+        <a-text
+          value="Location"
+          align="center"
+          color="white"
+          position="0 0 0.01">
+        </a-text>
+      </a-plane>
+
+    </a-entity>
 
   </a-marker>
 
-  <!-- Camera with proper raycaster -->
+  <!-- CAMERA WITH RAYCASTER -->
   <a-camera
     cursor="rayOrigin: mouse; fuse: false"
     raycaster="objects: .clickable">
