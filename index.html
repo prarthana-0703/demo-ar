@@ -2,83 +2,134 @@
 <html>
 <head>
   <title>AR Wedding Invitation</title>
+
+  <!-- A-Frame & AR.js -->
   <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/3.3.2/aframe/build/aframe-ar.js"></script>
 
   <style>
-    /* UI Overlay Styles */
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: sans-serif;
+    }
+
+    /* UI Overlay */
     .ui-container {
       position: fixed;
-      bottom: 30px;
+      bottom: 25px;
       left: 0;
       width: 100%;
       display: flex;
       justify-content: center;
       gap: 20px;
-      z-index: 10;
-      pointer-events: none;
+      z-index: 9999;          /* IMPORTANT */
+      pointer-events: auto;   /* IMPORTANT */
     }
 
     .btn {
-      pointer-events: auto;
-      padding: 12px 24px;
+      padding: 12px 22px;
       background-color: #d4af37; /* Gold */
       color: white;
       border: 2px solid white;
       border-radius: 25px;
       font-weight: bold;
-      font-size: 16px;
+      font-size: 15px;
       cursor: pointer;
-      box-shadow: 0px 4px 6px rgba(0,0,0,0.3);
+      box-shadow: 0px 4px 6px rgba(0,0,0,0.4);
     }
 
-    .btn:active { transform: scale(0.95); }
+    .btn:active {
+      transform: scale(0.95);
+    }
   </style>
 
   <script>
-    // AR Marker Logic
+    /* Marker → Video Control */
     AFRAME.registerComponent('marker-video', {
       init: function () {
         const video = document.querySelector('#wedding-video');
-        this.el.addEventListener('markerFound', () => { video.play(); });
-        this.el.addEventListener('markerLost', () => { video.pause(); });
+        this.el.addEventListener('markerFound', () => {
+          video.play();
+        });
+        this.el.addEventListener('markerLost', () => {
+          video.pause();
+        });
       }
     });
 
-    // Button Logic
+    /* Button Actions */
     function handleButtonClick(action) {
+      const video = document.querySelector('#wedding-video');
+
       if (action === 'unmute') {
-        const video = document.querySelector('#wedding-video');
         video.muted = false;
-        alert("Video Unmuted!");
-      } 
-      else if (action === 'navigate') {
-        // THIS REDIRECTS TO YOUR NAVIGATION FILE
-        window.location.href = 'navigation.html';
+        video.play();
+        alert("🔊 Sound ON");
+      }
+
+      if (action === 'navigate') {
+        window.location.href = "navigation.html";
       }
     }
   </script>
 </head>
 
-<body style="margin:0; overflow:hidden;">
+<body>
 
+  <!-- UI BUTTONS -->
   <div class="ui-container">
     <button class="btn" onclick="handleButtonClick('unmute')">🔊 Unmute</button>
     <button class="btn" onclick="handleButtonClick('navigate')">🧭 Start Navigation</button>
   </div>
 
-  <a-scene embedded renderer="alpha: true" arjs="sourceType: webcam; debugUIEnabled: false;" vr-mode-ui="enabled:false">
-    
+  <!-- AR SCENE -->
+  <a-scene
+    embedded
+    renderer="alpha: true"
+    arjs="sourceType: webcam; debugUIEnabled: false;"
+    vr-mode-ui="enabled:false"
+    style="pointer-events: none;">  <!-- CRITICAL FIX -->
+
     <a-assets>
-      <video id="wedding-video" src="GIF_Video_Generation_Successful.mp4" preload="auto" loop muted playsinline webkit-playsinline crossorigin="anonymous"></video>
+      <video
+        id="wedding-video"
+        src="GIF_Video_Generation_Successful.mp4"
+        preload="auto"
+        loop
+        muted
+        playsinline
+        webkit-playsinline
+        crossorigin="anonymous">
+      </video>
     </a-assets>
 
+    <!-- HIRO MARKER -->
     <a-marker preset="hiro" smooth="true" marker-video>
-      <a-video src="#wedding-video" position="0 0.6 0" rotation="-90 0 0" width="1.8" height="1.0"></a-video>
-      <a-plane position="0 0.6 -0.01" rotation="-90 0 0" width="1.9" height="1.1" color="#d4af37" material="side: back"></a-plane>
+
+      <!-- VIDEO -->
+      <a-video
+        src="#wedding-video"
+        position="0 0.6 0"
+        rotation="-90 0 0"
+        width="1.8"
+        height="1.0">
+      </a-video>
+
+      <!-- GOLD FRAME -->
+      <a-plane
+        position="0 0.6 -0.01"
+        rotation="-90 0 0"
+        width="1.9"
+        height="1.1"
+        color="#d4af37"
+        material="side: back">
+      </a-plane>
+
     </a-marker>
 
     <a-camera></a-camera>
   </a-scene>
+
 </body>
 </html>
