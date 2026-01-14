@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>3D AR Wedding Navigation</title>
+    
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.css" rel="stylesheet">
+    
+    <style>
+        /* UI Reset */
+        body { margin: 0; overflow: hidden; background: black; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        
+        /* 1. Camera Feed */
+        #camera-feed {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            object-fit: cover; z-index: -2;
+        }
+
+        /* 2. AR Canvas */
+        #ar-canvas {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1; pointer-events: none;
+        }
+
+        /* 3. Debug/Info Panel */
+        #debug-panel {
+            position: fixed; top: 10px; left: 10px;
+            color: lime; font-family: monospace; font-size: 12px;
+            background: rgba(0,0,0,0.5); padding: 5px; z-index: 20;
+            pointer-events: none;
+        }
+
+        /* 4. HUD Instruction */
+        #hud {
+            position: fixed; top: 40px; left: 50%; transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8); 
+            padding: 15px 30px; 
+            border-radius: 50px;
+            border: 3px solid #00ff00; /* Default Green */
+            color: #fff; font-weight: 800;
+            font-size: 20px; z-index: 10; text-transform: uppercase;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.5); 
+            white-space: nowrap;
+            transition: all 0.3s ease;
+        }
+
+        /* 5. Mini Map */
+        #mini-map {
+            position: fixed; bottom: 30px; right: 20px;
+            width: 140px; height: 140px; 
+            border-radius: 20px; border: 4px solid white; 
+            background: #222; z-index: 10;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            overflow: hidden;
+        }
+
+        /* 6. Start Button */
+        #start-btn {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            padding: 20px 50px; font-size: 20px; background: #00e5ff; color: #000;
+            border: none; border-radius: 50px; font-weight: 900; z-index: 50; cursor: pointer;
+            box-shadow: 0 0 30px #00e5ff;
+        }
+    </style>
+</head>
+<body>
+
+    <video id="camera-feed" autoplay playsinline muted></video>
+
+    <canvas id="ar-canvas"></canvas>
+
+    <div id="debug-panel">
+        GPS: <span id="dbg-gps">Waiting</span><br>
+        Compass: <span id="dbg-compass">Waiting</span>
+    </div>
+
+    <div id="hud">Waiting for Start...</div>
+    <div id="mini-map"></div>
+    <button id="start-btn" onclick="startAR()">ENTER AR MODE</button>
+
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <script>
+        // ================= CONFIGURATION =================
+        const MAPBOX_TOKEN = 'pk.eyJ1IjoiaGVtYW50aDg1MDMiLCJhIjoiY21rNzV5c2w2MHlqeTNncjI5bjkyeWJwaiJ9.NnunzAB_24Ntn83H5hRcyQ'; 
+        const DESTINATION = [79.1559, 12.9692]; // VIT Vellore
+
+        // LOOK AHEAD (Carrot Logic)
+        const CARROT_DIST = 20; 
+
+        // ================= VARIABLES =================
+        let map, scene, camera, renderer, arrowMesh;
+        let mainArrowModel; // Replaces shaftMesh/headMesh
+        let routeCoords = []; 
+        let steps = []; 
+        let currentStepIndex = 0;
+        let deviceHeading = 0; 
+        let targetBearing = 0; 
+        let isRunning = false;
+        
+        // ================= STARTUP =================
+        async function startAR() {
+            if(MAPBOX_TOKEN.includes('YOUR_MAPBOX')) {
+                alert("⚠️ Error: Paste your Mapbox Token first!"); return;
+            }
+            document.getElementById("start-btn").style.display = "none";
+            document.getElementById("hud").innerText = "Aligning...";
+            
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: "environment" } 
+                });
+                document.getElementById("camera-feed").srcObject = stream;
+            } catch(e) { console.error(e); alert("Camera Denied"); }
+
+            initThreeJS();
+            initMap();
+            requestSensors();
+            
+            isRunning = true;
+            animate(); 
+        }
+
+        // ================= 3D ENGINE (NEW ARROW MODEL) =================
+        function initThreeJS() {
+            const canvas = document.getElementById('ar-canvas');
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
+            
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+
+            // --- CREATE CUSTOM ARROW SHAPE ---
+            arrowMesh = new THREE.Group();
+
+            // 1. Draw the 2D Shape of a "Proper Arrow"
+            const shape = new THREE.Shape();
+            const width = 0.5;
+            const headWidth = 1.0;
+            const headLen = 1.0;
+            const shaftLen = 1.5;
+
+            // Draw counter-clockwise from bottom-center
+            shape.moveTo(width/2, 0);                 // Bottom Right Shaft
+            shape.lineTo(width/2, shaftLen);          // Top Right Shaft
+            shape.lineTo(headWidth, shaftLen);        // Right Wing
+            shape.lineTo(0, shaftLen + headLen);      // Tip
+            shape.lineTo(-headWidth, shaftLen);       // Left Wing
+            shape.lineTo(-width/2, shaftLen);         // Top Left Shaft
+            shape.lineTo(-width/2, 0);                // Bottom Left Shaft
+            shape.lineTo(width/2, 0);                 // Close shape
+
+            // 2. Extrude to 3D
+            const extrudeSettings = {
+                steps: 1,
+                depth: 0.2, // Thickness
+                bevelEnabled: true,
+                bevelThickness: 0.05,
+                bevelSize: 0.05,
+                bevelSegments: 2
+            };
+
+            const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+            
+            // 3. Center the Geometry
+            geometry.center();
+
+            // 4. Material (Starts Green)
+            const material = new THREE.MeshLambertMaterial({ color: 0x00ff00 }); 
+            mainArrowModel = new THREE.Mesh(geometry, material);
+
+            // 5. Rotate to lay flat on "ground"
+            // By default Extrude creates shape in XY plane. We rotate X to -90 to lay it flat.
+            mainArrowModel.rotation.x = -Math.PI / 2;
+            // Rotate Y 180 because the shape points "Up" in 2D, which is -Z in 3D
+            mainArrowModel.rotation.z = Math.PI;
+
+            arrowMesh.add(mainArrowModel);
+
+            // Position (Ground Level)
+            arrowMesh.position.set(0, -1.5, -4); 
+            scene.add(arrowMesh);
+
+            // Lighting (Important for 3D shape definition)
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(5, 10, 7);
+            scene.add(dirLight);
+        }
+
+        // ================= ANIMATION LOOP =================
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if(isRunning && arrowMesh) {
+                // 1. Calculate Rotation (Carrot Logic)
+                let desiredRotationY = (targetBearing - deviceHeading) * (Math.PI / 180);
+                desiredRotationY = -desiredRotationY; // Invert for Three.js
+
+                // 2. Smooth Lerp
+                let currentY = arrowMesh.rotation.y;
+                let diff = desiredRotationY - currentY;
+                while (diff > Math.PI) diff -= Math.PI * 2;
+                while (diff < -Math.PI) diff += Math.PI * 2;
+                arrowMesh.rotation.y += diff * 0.1;
+
+                // 3. Bobbing
+                arrowMesh.position.y = -1.5 + Math.sin(Date.now() * 0.003) * 0.1;
+                
+                renderer.render(scene, camera);
+            }
+        }
+
+        // ================= SENSORS =================
+        function requestSensors() {
+            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                DeviceOrientationEvent.requestPermission().then(r => {
+                    if (r === 'granted') window.addEventListener('deviceorientation', handleOrientation);
+                });
+            } else {
+                window.addEventListener('deviceorientation', handleOrientation);
+            }
+
+            if(navigator.geolocation) {
+                navigator.geolocation.watchPosition(handleGPS, console.error, { enableHighAccuracy: true });
+            }
+        }
+
+        function handleOrientation(e) {
+            let heading = e.webkitCompassHeading || (e.alpha ? 360 - e.alpha : 0);
+            deviceHeading = heading;
+            document.getElementById("dbg-compass").innerText = Math.round(heading) + "°";
+        }
+
+        function handleGPS(pos) {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            document.getElementById("dbg-gps").innerText = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+
+            // 1. Init Route
+            if (routeCoords.length === 0) getRoute(lat, lng);
+
+            // 2. Map Update
+            if(map && window.userMarker) {
+                window.userMarker.setLngLat([lng, lat]);
+                map.flyTo({ center: [lng, lat], zoom: 17, speed: 0.5 });
+            }
+
+            // 3. THE "CARROT" LOGIC
+            if (routeCoords.length > 0) {
+                const carrot = getCarrotPoint(lat, lng, routeCoords, CARROT_DIST);
+                targetBearing = getBearing(lat, lng, carrot[1], carrot[0]);
+                updateHUD(lat, lng);
+            }
+        }
+
+        // ================= NAVIGATION BRAIN =================
+        function getCarrotPoint(lat, lng, coords, lookAheadDist) {
+            let closestIdx = 0;
+            let minDist = Infinity;
+            
+            for(let i=0; i<coords.length; i++) {
+                const d = getDistance(lat, lng, coords[i][1], coords[i][0]);
+                if(d < minDist) { minDist = d; closestIdx = i; }
+            }
+
+            let targetIdx = closestIdx;
+            let distAccum = 0;
+            
+            while(targetIdx < coords.length - 1) {
+                const p1 = coords[targetIdx];
+                const p2 = coords[targetIdx+1];
+                const d = getDistance(p1[1], p1[0], p2[1], p2[0]);
+                distAccum += d;
+                targetIdx++;
+                if(distAccum > lookAheadDist) break;
+            }
+            return coords[targetIdx]; 
+        }
+
+        function updateHUD(lat, lng) {
+            if (steps.length > 0 && currentStepIndex < steps.length) {
+                const targetStep = steps[currentStepIndex].maneuver.location;
+                const distToTurn = getDistance(lat, lng, targetStep[1], targetStep[0]);
+                
+                const hud = document.getElementById("hud");
+                const instr = steps[currentStepIndex].maneuver.instruction;
+                
+                hud.innerText = `${instr} (${Math.round(distToTurn)}m)`;
+
+                // Color Logic
+                if(distToTurn < 20) {
+                    // Turn Imminent (CYAN)
+                    hud.style.borderColor = "#00e5ff"; 
+                    hud.style.color = "#00e5ff";
+                    if(mainArrowModel) mainArrowModel.material.color.setHex(0x00e5ff);
+                    
+                    if(currentStepIndex < steps.length - 1) currentStepIndex++; 
+                } else {
+                    // Go Straight (GREEN)
+                    hud.style.borderColor = "#00ff00"; 
+                    hud.style.color = "#00ff00";
+                    if(mainArrowModel) mainArrowModel.material.color.setHex(0x00ff00);
+                }
+            }
+        }
+
+        // ================= API & MATH =================
+        function initMap() {
+            mapboxgl.accessToken = MAPBOX_TOKEN;
+            map = new mapboxgl.Map({
+                container: 'mini-map', style: 'mapbox://styles/mapbox/dark-v11',
+                center: DESTINATION, zoom: 16, attributionControl: false
+            });
+            const el = document.createElement('div');
+            el.className = 'marker'; el.style.backgroundColor = '#00ff00';
+            el.style.width = '15px'; el.style.height = '15px';
+            el.style.borderRadius = '50%'; el.style.border = '2px solid white';
+            window.userMarker = new mapboxgl.Marker(el).setLngLat(DESTINATION).addTo(map);
+            new mapboxgl.Marker({ color: 'red' }).setLngLat(DESTINATION).addTo(map);
+        }
+
+        async function getRoute(lat, lng) {
+            const url = `https://api.mapbox.com/directions/v5/mapbox/walking/${lng},${lat};${DESTINATION[0]},${DESTINATION[1]}?steps=true&geometries=geojson&access_token=${MAPBOX_TOKEN}`;
+            try {
+                const res = await fetch(url);
+                const data = await res.json();
+                if(data.routes && data.routes.length > 0) {
+                    routeCoords = data.routes[0].geometry.coordinates; 
+                    steps = data.routes[0].legs[0].steps;
+                    if(steps.length > 1) steps.shift();
+
+                    const geojson = data.routes[0].geometry;
+                    map.on('load', () => {
+                        map.addLayer({
+                            id: 'route', type: 'line',
+                            source: { type: 'geojson', data: { type: 'Feature', geometry: geojson } },
+                            layout: { 'line-join': 'round', 'line-cap': 'round' },
+                            paint: { 'line-color': '#00ff00', 'line-width': 4 }
+                        });
+                    });
+                }
+            } catch(e) { console.error(e); }
+        }
+
+        function getDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371e3;
+            const dLat = (lat2-lat1)*Math.PI/180;
+            const dLon = (lon2-lon1)*Math.PI/180;
+            const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+            return R*2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+
+        function getBearing(lat1, lon1, lat2, lon2) {
+            const dLon = (lon2-lon1)*Math.PI/180;
+            const y = Math.sin(dLon)*Math.cos(lat2*Math.PI/180);
+            const x = Math.cos(lat1*Math.PI/180)*Math.sin(lat2*Math.PI/180) - Math.sin(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.cos(dLon);
+            return (Math.atan2(y, x)*180/Math.PI + 360)%360;
+        }
+
+        window.addEventListener('resize', () => {
+            if(camera && renderer) {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+        });
+    </script>
+</body>
+</html>
