@@ -26,19 +26,19 @@
       const music = document.querySelector('#bg-music');
 
       document.querySelector('#unmuteBtn')
-        .addEventListener('click', function () {
+        .addEventListener('mousedown', function () {
           video.muted = false;
           video.play();
           music.play();
         });
 
       document.querySelector('#musicBtn')
-        .addEventListener('click', function () {
+        .addEventListener('mousedown', function () {
           music.paused ? music.play() : music.pause();
         });
 
       document.querySelector('#navBtn')
-        .addEventListener('click', function () {
+        .addEventListener('mousedown', function () {
           window.location.href = 'navigation.html';
         });
 
@@ -57,7 +57,9 @@
     embedded
     renderer="alpha: true"
     arjs="sourceType: webcam; debugUIEnabled: false;"
-    vr-mode-ui="enabled:false">
+    vr-mode-ui="enabled:false"
+    cursor="rayOrigin: mouse"
+    raycaster="objects: .clickable">
 
     <a-assets>
       <video
@@ -144,14 +146,7 @@
 
     </a-marker>
 
-    <!-- CAMERA WITH FUSE CLICK (MOBILE SUPPORT) -->
-    <a-camera>
-      <a-cursor
-        fuse="true"
-        fuse-timeout="800"
-        raycaster="objects: .clickable">
-      </a-cursor>
-    </a-camera>
+    <a-camera></a-camera>
 
   </a-scene>
 
