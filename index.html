@@ -7,12 +7,11 @@
   <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/3.3.2/aframe/build/aframe-ar.js"></script>
 
-  <style> 
+  <style>
     body { margin: 0; overflow: hidden; }
   </style>
 
   <script>
-    // Marker video play/pause
     AFRAME.registerComponent('marker-video', {
       init: function () {
         const video = document.querySelector('#wedding-video');
@@ -30,7 +29,6 @@
     <source src="wedding-music.mp3" type="audio/mpeg">
   </audio>
 
-  <!-- AR Scene -->
   <a-scene
     embedded
     renderer="alpha: true"
@@ -52,10 +50,9 @@
       </video>
     </a-assets>
 
-    <!-- Hiro Marker -->
-    <a-marker preset="hiro" smooth="true" marker-video>
+    <a-marker preset="hiro" marker-video>
 
-      <!-- Video -->
+      <!-- VIDEO -->
       <a-video
         src="#wedding-video"
         position="0 0.8 0"
@@ -64,136 +61,61 @@
         height="1.0">
       </a-video>
 
-      <!-- Golden Background -->
-      <a-plane
-        position="0 0.8 -0.01"
+      <!-- 3D BUTTONS BELOW VIDEO -->
+
+      <!-- Unmute -->
+      <a-box
+        class="clickable"
+        position="-0.8 0.8 0.7"
         rotation="-90 0 0"
-        width="1.9"
-        height="1.1"
+        depth="0.15"
+        height="0.25"
+        width="0.6"
         color="#d4af37"
-        material="side: back">
-      </a-plane>
+        onclick="document.querySelector('#wedding-video').muted=false;">
 
-      <!-- ========================= -->
-      <!-- 3D FLOATING BUTTONS -->
-      <!-- ========================= -->
+        <a-text value="Unmute"
+          align="center"
+          color="white"
+          position="0 0 0.09"
+          scale="0.6 0.6 0.6">
+        </a-text>
+      </a-box>
 
-     <!-- 3D FLOATING BUTTONS BELOW VIDEO (VISIBLE FIXED) -->
+      <!-- Music -->
+      <a-box
+        class="clickable"
+        position="0 0.8 0.7"
+        rotation="-90 0 0"
+        depth="0.15"
+        height="0.25"
+        width="0.6"
+        color="#d4af37"
+        onclick="var m=document.querySelector('#bg-music'); m.paused?m.play():m.pause();">
 
-<!-- Unmute -->
-<a-box
-  class="clickable"
-  position="-0.8 0.35 0.15"
-  depth="0.15"
-  height="0.25"
-  width="0.6"
-  color="#d4af37"
-  onclick="document.querySelector('#wedding-video').muted=false;">
+        <a-text value="Music"
+          align="center"
+          color="white"
+          position="0 0 0.09"
+          scale="0.6 0.6 0.6">
+        </a-text>
+      </a-box>
 
-  <a-text value="Unmute"
-    align="center"
-    color="white"
-    position="0 0 0.09"
-    scale="0.6 0.6 0.6">
-  </a-text>
-</a-box>
-
-<!-- Music -->
-<a-box
-  class="clickable"
-  position="0 0.35 0.15"
-  depth="0.15"
-  height="0.25"
-  width="0.6"
-  color="#d4af37"
-  onclick="var m=document.querySelector('#bg-music'); m.paused?m.play():m.pause();">
-
-  <a-text value="Music"
-    align="center"
-    color="white"
-    position="0 0 0.09"
-    scale="0.6 0.6 0.6">
-  </a-text>
-</a-box>
-
-<!-- Navigation -->
-<a-box
-  class="clickable"
-  position="0.8 0.35 0.15"
-  depth="0.15"
-  height="0.25"
-  width="0.7"
-  color="#d4af37"
-  onclick="window.location.href='navigation.html';">
-
-  <a-text value="Navigate"
-    align="center"
-    color="white"
-    position="0 0 0.09"
-    scale="0.6 0.6 0.6">
-  </a-text>
-</a-box>
-        <!-- 3D FLOATING BUTTONS BELOW VIDEO -->
-
-<!-- Unmute -->
-<a-box
-  class="clickable"
-  position="-0.8 0.45 0.05"
-  depth="0.12"
-  height="0.25"
-  width="0.6"
-  color="#d4af37"
-  animation="property: scale; dir: alternate; dur: 1200; loop: true; to: 1.05 1.05 1.05"
-  onclick="document.querySelector('#wedding-video').muted=false;">
-
-  <a-text value="Unmute"
-    align="center"
-    color="white"
-    position="0 0 0.08"
-    scale="0.6 0.6 0.6">
-  </a-text>
-</a-box>
-
-<!-- Music -->
-<a-box
-  class="clickable"
-  position="0 0.45 0.05"
-  depth="0.12"
-  height="0.25"
-  width="0.6"
-  color="#d4af37"
-  onclick="var m=document.querySelector('#bg-music'); m.paused?m.play():m.pause();">
-
-  <a-text value="Music"
-    align="center"
-    color="white"
-    position="0 0 0.08"
-    scale="0.6 0.6 0.6">
-  </a-text>
-</a-box>
-
-<!-- Navigation -->
-<a-box
-  class="clickable"
-  position="0.8 0.45 0.05"
-  depth="0.12"
-  height="0.25"
-  width="0.7"
-  color="#d4af37"
-  onclick="window.location.href='navigation.html';">
-
-  <a-text value="Navigate"
-    align="center"
-    color="white"
-    position="0 0 0.08"
-    scale="0.6 0.6 0.6">
-  </a-text>
-</a-box>
+      <!-- Navigation -->
+      <a-box
+        class="clickable"
+        position="0.8 0.8 0.7"
+        rotation="-90 0 0"
+        depth="0.15"
+        height="0.25"
+        width="0.7"
+        color="#d4af37"
+        onclick="window.location.href='navigation.html';">
 
         <a-text value="Navigate"
           align="center"
           color="white"
-          position="0 0 0.08"
+          position="0 0 0.09"
           scale="0.6 0.6 0.6">
         </a-text>
       </a-box>
