@@ -59,9 +59,11 @@
         height="1.0">
       </a-video>
 
-      <!-- 3D BUTTONS BELOW VIDEO -->
+      <!-- ============================= -->
+      <!-- 3D BUTTONS BELOW THE VIDEO -->
+      <!-- ============================= -->
 
-      <!-- Unmute -->
+      <!-- UNMUTE (Starts Music Also) -->
       <a-box
         class="clickable"
         position="-0.8 0.8 0.7"
@@ -70,7 +72,13 @@
         height="0.25"
         width="0.6"
         color="#d4af37"
-        onclick="document.querySelector('#wedding-video').muted=false;">
+        onclick="
+          var v=document.querySelector('#wedding-video');
+          var m=document.querySelector('#bg-music');
+          v.muted=false;
+          v.play();
+          m.play();
+        ">
 
         <a-text value="Unmute"
           align="center"
@@ -80,7 +88,7 @@
         </a-text>
       </a-box>
 
-      <!-- Music -->
+      <!-- MUSIC TOGGLE -->
       <a-box
         class="clickable"
         position="0 0.8 0.7"
@@ -89,7 +97,10 @@
         height="0.25"
         width="0.6"
         color="#d4af37"
-        onclick="var m=document.querySelector('#bg-music'); m.paused?m.play():m.pause();">
+        onclick="
+          var m=document.querySelector('#bg-music');
+          m.paused ? m.play() : m.pause();
+        ">
 
         <a-text value="Music"
           align="center"
@@ -99,7 +110,7 @@
         </a-text>
       </a-box>
 
-      <!-- Navigation -->
+      <!-- NAVIGATION -->
       <a-box
         class="clickable"
         position="0.8 0.8 0.7"
@@ -108,7 +119,7 @@
         height="0.25"
         width="0.7"
         color="#d4af37"
-        onclick="window.location.href='navigation.html';">
+        onclick="window.location.assign('navigation.html');">
 
         <a-text value="Navigate"
           align="center"
@@ -120,7 +131,7 @@
 
     </a-marker>
 
-    <!-- CAMERA WITH FUSE CURSOR (MOBILE FIX) -->
+    <!-- CAMERA WITH MOBILE FUSE CLICK -->
     <a-camera>
       <a-cursor
         fuse="true"
