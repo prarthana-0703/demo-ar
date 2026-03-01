@@ -9,32 +9,6 @@
 
   <style>
     body { margin: 0; overflow: hidden; }
-
-    /* UI Buttons */
-    .ui-container {
-      position: fixed;
-      bottom: 30px;
-      left: 0;
-      width: 100%;
-      display: flex;
-      justify-content: center;
-      gap: 15px;
-      z-index: 10;
-    }
-
-    .btn {
-      padding: 12px 24px;
-      background: #d4af37;
-      color: white;
-      border: 2px solid white;
-      border-radius: 25px;
-      font-size: 16px;
-      font-weight: bold;
-      cursor: pointer;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.4);
-    }
-
-    .btn:active { transform: scale(0.95); }
   </style>
 
   <script>
@@ -47,39 +21,32 @@
       }
     });
 
-    // Button actions
-    function handleButtonClick(action) {
-      const video = document.getElementById("wedding-video");
+    document.addEventListener("DOMContentLoaded", function () {
+
       const music = document.getElementById("bg-music");
+      const video = document.getElementById("wedding-video");
 
-      if (action === 'unmute') {
+      document.querySelector("#unmuteBtn").addEventListener("click", function () {
         video.muted = false;
-        alert("Video unmuted 🔊");
-      }
+      });
 
-      if (action === 'music') {
+      document.querySelector("#musicBtn").addEventListener("click", function () {
         if (music.paused) {
           music.play();
         } else {
           music.pause();
         }
-      }
+      });
 
-      if (action === 'navigate') {
+      document.querySelector("#navBtn").addEventListener("click", function () {
         window.location.href = "navigation.html";
-      }
-    }
+      });
+
+    });
   </script>
 </head>
 
 <body>
-
-  <!-- UI Buttons -->
-  <div class="ui-container">
-    <button class="btn" onclick="handleButtonClick('unmute')">🔊 Unmute Video</button>
-    <button class="btn" onclick="handleButtonClick('music')">🎵 Music</button>
-    <button class="btn" onclick="handleButtonClick('navigate')">🧭 Navigation</button>
-  </div>
 
   <!-- Background Music -->
   <audio id="bg-music" loop>
@@ -108,25 +75,81 @@
 
     <!-- Hiro Marker -->
     <a-marker preset="hiro" smooth="true" marker-video>
+
+      <!-- Video -->
       <a-video
         src="#wedding-video"
-        position="0 0.6 0"
+        position="0 0.8 0"
         rotation="-90 0 0"
         width="1.8"
         height="1.0">
       </a-video>
 
+      <!-- Golden Background -->
       <a-plane
-        position="0 0.6 -0.01"
+        position="0 0.8 -0.01"
         rotation="-90 0 0"
         width="1.9"
         height="1.1"
         color="#d4af37"
         material="side: back">
       </a-plane>
+
+      <!-- Floating AR Buttons -->
+
+      <!-- Unmute -->
+      <a-plane id="unmuteBtn"
+        position="-0.8 0.2 0"
+        rotation="-90 0 0"
+        width="0.5"
+        height="0.2"
+        color="#d4af37"
+        animation="property: scale; dir: alternate; dur: 1000; loop: true; to: 1.05 1.05 1.05">
+        <a-text value="Unmute"
+          align="center"
+          color="white"
+          position="0 0 0.01"
+          scale="0.5 0.5 0.5">
+        </a-text>
+      </a-plane>
+
+      <!-- Music -->
+      <a-plane id="musicBtn"
+        position="0 0.2 0"
+        rotation="-90 0 0"
+        width="0.5"
+        height="0.2"
+        color="#d4af37">
+        <a-text value="Music"
+          align="center"
+          color="white"
+          position="0 0 0.01"
+          scale="0.5 0.5 0.5">
+        </a-text>
+      </a-plane>
+
+      <!-- Navigation -->
+      <a-plane id="navBtn"
+        position="0.8 0.2 0"
+        rotation="-90 0 0"
+        width="0.6"
+        height="0.2"
+        color="#d4af37">
+        <a-text value="Navigate"
+          align="center"
+          color="white"
+          position="0 0 0.01"
+          scale="0.5 0.5 0.5">
+        </a-text>
+      </a-plane>
+
     </a-marker>
 
-    <a-camera></a-camera>
+    <!-- Enable Click Cursor -->
+    <a-camera>
+      <a-cursor></a-cursor>
+    </a-camera>
+
   </a-scene>
 
 </body>
