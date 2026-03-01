@@ -2,61 +2,56 @@
 <html>
 <head>
   <title>AR Wedding Invitation</title>
+
   <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/3.3.2/aframe/build/aframe-ar.js"></script>
 
   <style>
     body { margin: 0; overflow: hidden; }
-    /* Hint for the user if they need to interact with the screen first */
-    #overlay {
-      position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-      z-index: 10; background: rgba(0,0,0,0.5); color: white; padding: 10px; border-radius: 5px;
-      font-family: sans-serif; pointer-events: none;
-    }
   </style>
 
   <script>
-    // Component to handle video play/pause on marker found/lost
-    AFRAME.registerComponent('marker-handler', {
+    // This component handles the actual clicks on the 3D objects
+    AFRAME.registerComponent('button-logic', {
       init: function () {
+        const el = this.el;
         const video = document.querySelector('#wedding-video');
-        this.el.addEventListener('markerFound', () => {
-          video.play();
-        });
-        this.el.addEventListener('markerLost', () => {
-          video.pause();
+        const music = document.querySelector('#bg-music');
+
+        el.addEventListener('click', function () {
+          // Identify which button was clicked by its ID
+          const id = el.getAttribute('id');
+
+          if (id === 'unmuteBtn') {
+            video.muted = false;
+            video.play();
+            music.play();
+          } else if (id === 'musicBtn') {
+            if (music.paused) {
+              music.play();
+            } else {
+              music.pause();
+            }
+          } else if (id === 'navBtn') {
+            // This is the direct redirection to your navigation page
+            window.location.href = 'navigation.html';
+          }
         });
       }
     });
 
-    // Component for clickable 3D buttons
-    AFRAME.registerComponent('click-handler', {
-      schema: {
-        action: {type: 'string'}
-      },
+    // Control video playback based on marker visibility
+    AFRAME.registerComponent('marker-handler', {
       init: function () {
         const video = document.querySelector('#wedding-video');
-        const music = document.querySelector('#bg-music');
-        
-        this.el.addEventListener('click', () => {
-          if (this.data.action === 'unmute') {
-            video.muted = false;
-            video.play();
-          } else if (this.data.action === 'music') {
-            if (music.paused) music.play();
-            else music.pause();
-          } else if (this.data.action === 'navigate') {
-            // REDIRECT LOGIC
-            window.location.href = 'navigation.html';
-          }
-        });
+        this.el.addEventListener('markerFound', () => video.play());
+        this.el.addEventListener('markerLost', () => video.pause());
       }
     });
   </script>
 </head>
 
 <body>
-  <div id="overlay">Point camera at Hiro marker</div>
 
   <audio id="bg-music" loop>
     <source src="wedding-music.mp3" type="audio/mpeg">
@@ -64,7 +59,8 @@
 
   <a-scene
     embedded
-    renderer="alpha: true; antialias: true; colorManagement: true;"
+    cursor="rayOrigin: mouse"
+    raycaster="objects: .clickable"
     arjs="sourceType: webcam; debugUIEnabled: false;"
     vr-mode-ui="enabled:false">
 
@@ -82,56 +78,60 @@
     </a-assets>
 
     <a-marker preset="hiro" marker-handler>
-      
+
       <a-video
         src="#wedding-video"
-        position="0 0.5 0"
+        position="0 0.8 0"
         rotation="-90 0 0"
-        width="2"
-        height="1.1">
+        width="1.8"
+        height="1.0">
       </a-video>
 
       <a-box
-        click-handler="action: unmute"
+        id="unmuteBtn"
         class="clickable"
-        position="-0.7 0.5 0.8"
+        button-logic
+        position="-0.8 0.8 0.8"
         rotation="-90 0 0"
         depth="0.1" height="0.3" width="0.6"
         color="#d4af37">
-        <a-text value="Unmute" align="center" position="0 0 0.06" scale="0.5 0.5 0.5"></a-text>
+        <a-text value="Unmute" align="center" position="0 0 0.06" scale="0.4 0.4 0.4"></a-text>
       </a-box>
 
       <a-box
-        click-handler="action: music"
+        id="musicBtn"
         class="clickable"
-        position="0 0.5 0.8"
+        button-logic
+        position="0 0.8 0.8"
         rotation="-90 0 0"
         depth="0.1" height="0.3" width="0.6"
         color="#d4af37">
-        <a-text value="Music" align="center" position="0 0 0.06" scale="0.5 0.5 0.5"></a-text>
+        <a-text value="Music" align="center" position="0 0 0.06" scale="0.4 0.4 0.4"></a-text>
       </a-box>
 
       <a-box
-        click-handler="action: navigate"
+        id="navBtn"
         class="clickable"
-        position="0.7 0.5 0.8"
+        button-logic
+        position="0.8 0.8 0.8"
         rotation="-90 0 0"
-        depth="0.1" height="0.3" width="0.6"
+        depth="0.1" height="0.3" width="0.7"
         color="#d4af37">
-        <a-text value="Nav" align="center" position="0 0 0.06" scale="0.5 0.5 0.5"></a-text>
+        <a-text value="Navigate" align="center" position="0 0 0.06" scale="0.4 0.4 0.4"></a-text>
       </a-box>
 
     </a-marker>
 
     <a-entity camera>
-      <a-cursor
-        fuse="true"
-        fuse-timeout="1500"
-        raycaster="objects: .clickable"
-        material="color: #FF0000; shader: flat">
-      </a-cursor>
+      <a-entity cursor="fuse: true; fuseTimeout: 1000"
+                position="0 0 -1"
+                geometry="primitive: ring; radiusInner: 0.02; radiusOuter: 0.03"
+                material="color: white; shader: flat"
+                raycaster="objects: .clickable">
+      </a-entity>
     </a-entity>
 
   </a-scene>
+
 </body>
 </html>
