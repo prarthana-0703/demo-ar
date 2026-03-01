@@ -20,29 +20,6 @@
         this.el.addEventListener('markerLost', () => video.pause());
       }
     });
-
-    document.addEventListener("DOMContentLoaded", function () {
-
-      const music = document.getElementById("bg-music");
-      const video = document.getElementById("wedding-video");
-
-      document.querySelector("#unmuteBtn").addEventListener("click", function () {
-        video.muted = false;
-      });
-
-      document.querySelector("#musicBtn").addEventListener("click", function () {
-        if (music.paused) {
-          music.play();
-        } else {
-          music.pause();
-        }
-      });
-
-      document.querySelector("#navBtn").addEventListener("click", function () {
-        window.location.href = "navigation.html";
-      });
-
-    });
   </script>
 </head>
 
@@ -58,7 +35,9 @@
     embedded
     renderer="alpha: true"
     arjs="sourceType: webcam; debugUIEnabled: false;"
-    vr-mode-ui="enabled:false">
+    vr-mode-ui="enabled:false"
+    cursor="rayOrigin: mouse"
+    raycaster="objects: .clickable">
 
     <a-assets>
       <video
@@ -95,16 +74,17 @@
         material="side: back">
       </a-plane>
 
-      <!-- Floating AR Buttons -->
+      <!-- FLOATING AR BUTTONS -->
 
       <!-- Unmute -->
-      <a-plane id="unmuteBtn"
+      <a-plane
+        class="clickable"
         position="-0.8 0.2 0"
         rotation="-90 0 0"
         width="0.5"
         height="0.2"
         color="#d4af37"
-        animation="property: scale; dir: alternate; dur: 1000; loop: true; to: 1.05 1.05 1.05">
+        onclick="document.querySelector('#wedding-video').muted=false;">
         <a-text value="Unmute"
           align="center"
           color="white"
@@ -114,12 +94,14 @@
       </a-plane>
 
       <!-- Music -->
-      <a-plane id="musicBtn"
+      <a-plane
+        class="clickable"
         position="0 0.2 0"
         rotation="-90 0 0"
         width="0.5"
         height="0.2"
-        color="#d4af37">
+        color="#d4af37"
+        onclick="var m=document.querySelector('#bg-music'); m.paused?m.play():m.pause();">
         <a-text value="Music"
           align="center"
           color="white"
@@ -129,12 +111,14 @@
       </a-plane>
 
       <!-- Navigation -->
-      <a-plane id="navBtn"
+      <a-plane
+        class="clickable"
         position="0.8 0.2 0"
         rotation="-90 0 0"
         width="0.6"
         height="0.2"
-        color="#d4af37">
+        color="#d4af37"
+        onclick="window.location.href='navigation.html';">
         <a-text value="Navigate"
           align="center"
           color="white"
@@ -145,10 +129,7 @@
 
     </a-marker>
 
-    <!-- Enable Click Cursor -->
-    <a-camera>
-      <a-cursor></a-cursor>
-    </a-camera>
+    <a-camera></a-camera>
 
   </a-scene>
 
