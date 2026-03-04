@@ -3,34 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>VIT AR Navigation - Q Block</title>
+    <title>VIT AR Nav: E-Block to C-Block</title>
     <link href="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.css" rel="stylesheet">
     <style>
-        body { margin: 0; overflow: hidden; background: black; font-family: 'Segoe UI', sans-serif; }
+        body { margin: 0; overflow: hidden; background: black; font-family: 'Segoe UI', Roboto, sans-serif; }
         #camera-feed { position: fixed; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; }
         #ar-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; }
         
-        #hud {
+        /* Google Maps Style Header */
+        #nav-header {
             position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-            background: rgba(0,0,0,0.8); padding: 12px 25px; border-radius: 30px;
-            border: 2px solid #00ff00; color: white; font-size: 16px; z-index: 10; text-align: center;
-            min-width: 220px;
+            background: rgba(255, 255, 255, 0.95); padding: 15px; border-radius: 15px;
+            width: 85%; max-width: 400px; z-index: 10; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            color: #202124;
         }
 
-        #distance {
+        .stats { display: flex; justify-content: space-between; margin-bottom: 8px; font-weight: bold; font-size: 14px; }
+        #progress-bg { width: 100%; height: 6px; background: #e0e0e0; border-radius: 10px; overflow: hidden; }
+        #progress-fill { width: 0%; height: 100%; background: #1a73e8; transition: width 0.3s ease; }
+
+        /* Floating Distance Label */
+        #dist-float {
             position: fixed; bottom: 180px; left: 50%; transform: translateX(-50%);
-            color: #00ff00; font-size: 28px; font-weight: bold; text-shadow: 2px 2px 8px rgba(0,0,0,0.8); z-index: 10;
+            color: #00ff00; font-size: 36px; font-weight: 800; text-shadow: 2px 2px 10px rgba(0,0,0,0.9); z-index: 10;
         }
 
+        /* Circular Mini Map */
         #mini-map {
-            position: fixed; bottom: 20px; right: 20px; width: 130px; height: 130px;
-            border-radius: 50%; border: 3px solid white; z-index: 10; overflow: hidden;
+            position: fixed; bottom: 25px; right: 20px; width: 130px; height: 130px;
+            border-radius: 50%; border: 3px solid white; z-index: 10; box-shadow: 0 0 15px rgba(0,0,0,0.5);
+            overflow: hidden;
         }
 
         #start-btn {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            padding: 20px 40px; font-size: 20px; background: #00ff00; border: none;
-            border-radius: 50px; font-weight: bold; z-index: 100; cursor: pointer;
+            padding: 18px 35px; font-size: 18px; background: #1a73e8; color: white; border: none;
+            border-radius: 50px; font-weight: bold; z-index: 100; cursor: pointer; box-shadow: 0 4px 20px rgba(26,115,232,0.4);
         }
     </style>
 </head>
@@ -38,46 +46,59 @@
 
 <video id="camera-feed" autoplay playsinline muted></video>
 <canvas id="ar-canvas"></canvas>
-<div id="hud">Target: Q-Block Hostel</div>
-<div id="distance">--- m</div>
+
+<div id="nav-header">
+    <div class="stats">
+        <span>Covered: <span id="txt-covered">0</span>m</span>
+        <span style="color: #1a73e8;">Target: C-Block</span>
+    </div>
+    <div id="progress-bg"><div id="progress-fill"></div></div>
+</div>
+
+<div id="dist-float">--- m</div>
 <div id="mini-map"></div>
-<button id="start-btn" onclick="startAR()">START NAVIGATION</button>
+
+<button id="start-btn" onclick="startAR()">START AR NAVIGATION</button>
 
 <script src="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
 <script>
-// CONFIG
-const MAPBOX_TOKEN = "pk.eyJ1IjoiaGVtYW50aDg1MDMiLCJhIjoiY21rNzV5c2w2MHlqeTNncjI5bjkyeWJwaiJ9.NnunzAB_24Ntn83H5hRcyQ"; 
-// Coordinates for VIT Vellore Q Block (Vajpayee Block)
-const DESTINATION = [79.1639856, 12.9737816]; 
+// --- CONFIGURATION ---
+const MAPBOX_TOKEN = "YOUR_MAPBOX_TOKEN"; 
+const DESTINATION = [79.1578, 12.9701]; // C-Block Ladies Hostel VIT
 
+// --- SYSTEM VARIABLES ---
 let scene, camera, renderer, arrowMesh;
-let map, userMarker;
+let map, userMarker, startPos = null;
 let targetBearing = 0;
 let deviceHeading = 0;
+let currentYaw = 0;
 let isRunning = false;
 
 async function startAR() {
+    // 1. Request iOS/Android Compass Permissions
     if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-        try {
-            const response = await DeviceOrientationEvent.requestPermission();
-            if (response !== 'granted') return alert("Permission denied.");
-        } catch (e) { console.error(e); }
+        try { await DeviceOrientationEvent.requestPermission(); } catch (e) { console.error(e); }
     }
 
     document.getElementById("start-btn").style.display = "none";
     
+    // 2. Initialize Camera
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
         document.getElementById("camera-feed").srcObject = stream;
-    } catch (err) { alert("Camera error."); }
+    } catch (err) { alert("Camera access is mandatory for AR."); }
 
     initThree();
     initMap();
 
+    // 3. Start Sensors
     navigator.geolocation.watchPosition(handleGPS, null, { enableHighAccuracy: true });
-    window.addEventListener("deviceorientation", handleOrientation, true);
+    window.addEventListener("deviceorientation", (e) => {
+        deviceHeading = e.webkitCompassHeading || (360 - e.alpha);
+    }, true);
+
     isRunning = true;
     animate();
 }
@@ -85,87 +106,119 @@ async function startAR() {
 function initThree() {
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 2, 5); 
-    camera.lookAt(0, 0, 0);
+    camera.position.set(0, 0, 0);
 
     renderer = new THREE.WebGLRenderer({ canvas: document.getElementById("ar-canvas"), alpha: true, antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
 
+    // Create a 3D Nav Arrow
     const shape = new THREE.Shape();
-    shape.moveTo(0, 0.8); shape.lineTo(0.4, 0); shape.lineTo(0.15, 0); shape.lineTo(0.15, -0.6);
-    shape.lineTo(-0.15, -0.6); shape.lineTo(-0.15, 0); shape.lineTo(-0.4, 0); shape.closePath();
+    shape.moveTo(0, 0.6);   // Tip
+    shape.lineTo(0.35, -0.2); 
+    shape.lineTo(0.15, -0.2); 
+    shape.lineTo(0.15, -0.6); // Tail
+    shape.lineTo(-0.15, -0.6);
+    shape.lineTo(-0.15, -0.2);
+    shape.lineTo(-0.35, -0.2);
+    shape.closePath();
 
-    const geometry = new THREE.ExtrudeGeometry(shape, { depth: 0.15, bevelEnabled: false });
-    const material = new THREE.MeshPhongMaterial({ color: 0x00ff00, emissive: 0x002200 });
+    const geometry = new THREE.ExtrudeGeometry(shape, { depth: 0.1, bevelEnabled: false });
+    const material = new THREE.MeshPhongMaterial({ color: 0x00ff00, emissive: 0x004400, shininess: 80 });
     
     arrowMesh = new THREE.Mesh(geometry, material);
-    arrowMesh.rotation.x = -Math.PI / 2; 
+    arrowMesh.position.set(0, -1.2, -4); // Place 4 meters ahead, slightly below eye level
+    arrowMesh.rotation.x = -Math.PI / 2; // Lay flat on the virtual floor
+    
     scene.add(arrowMesh);
-
-    scene.add(new THREE.PointLight(0xffffff, 1, 100));
-    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+    scene.add(new THREE.PointLight(0xffffff, 1, 100), new THREE.AmbientLight(0xffffff, 0.6));
 }
 
 function initMap() {
     mapboxgl.accessToken = MAPBOX_TOKEN;
     map = new mapboxgl.Map({
         container: "mini-map",
-        style: "mapbox://styles/mapbox/navigation-night-v1",
+        style: "mapbox://styles/mapbox/streets-v12",
         center: DESTINATION,
         zoom: 16,
         interactive: false
     });
-    new mapboxgl.Marker({ color: "#ff0000" }).setLngLat(DESTINATION).addTo(map);
-    userMarker = new mapboxgl.Marker({ color: "#00ff00" }).setLngLat([0, 0]).addTo(map);
+
+    new mapboxgl.Marker({color: "#ea4335"}).setLngLat(DESTINATION).addTo(map);
+    userMarker = new mapboxgl.Marker({color: "#1a73e8"}).setLngLat([0,0]).addTo(map);
 }
 
 async function handleGPS(pos) {
     const lat = pos.coords.latitude;
     const lng = pos.coords.longitude;
+
+    if (!startPos) startPos = [lng, lat];
+
     userMarker.setLngLat([lng, lat]);
-    map.easeTo({ center: [lng, lat] });
+    map.easeTo({ center: [lng, lat], duration: 1000 });
 
-    const dist = getDistance(lat, lng, DESTINATION[1], DESTINATION[0]);
-    document.getElementById("distance").innerText = Math.round(dist) + " m";
+    const remaining = getDistance(lat, lng, DESTINATION[1], DESTINATION[0]);
+    const covered = getDistance(startPos[1], startPos[0], lat, lng);
+    
+    // Update UI Elements
+    document.getElementById("dist-float").innerText = Math.round(remaining) + " m";
+    document.getElementById("txt-covered").innerText = Math.round(covered);
+    
+    const progress = (covered / (covered + remaining)) * 100;
+    document.getElementById("progress-fill").style.width = Math.min(progress, 100) + "%";
 
-    if (dist < 15) {
-        document.getElementById("hud").innerText = "ARRIVED AT Q-BLOCK";
-        arrowMesh.material.color.setHex(0xffd700);
+    // Arrival Check
+    if (remaining < 8) {
+        document.getElementById("dist-float").innerText = "ARRIVED";
+        document.getElementById("dist-float").style.color = "#ffd700";
     }
 
+    // Fetch Direction from Mapbox
     const url = `https://api.mapbox.com/directions/v5/mapbox/walking/${lng},${lat};${DESTINATION[0]},${DESTINATION[1]}?geometries=geojson&access_token=${MAPBOX_TOKEN}`;
     try {
         const res = await fetch(url);
         const data = await res.json();
-        if (data.routes && data.routes.length > 0) {
-            const nextPoint = data.routes[0].geometry.coordinates[1] || DESTINATION;
-            targetBearing = getBearing(lat, lng, nextPoint[1], nextPoint[0]);
+        if (data.routes[0]) {
+            // Target the node 2 steps ahead to prevent flickering
+            const coords = data.routes[0].geometry.coordinates;
+            const targetNode = coords.length > 2 ? coords[2] : DESTINATION;
+            targetBearing = getBearing(lat, lng, targetNode[1], targetNode[0]);
         }
-    } catch (e) {}
+    } catch (e) { console.error("Routing error"); }
 }
-
-function handleOrientation(e) { deviceHeading = e.webkitCompassHeading || (360 - e.alpha); }
 
 function animate() {
     requestAnimationFrame(animate);
     if (!isRunning) return;
-    arrowMesh.rotation.z = -(THREE.MathUtils.degToRad(targetBearing) - THREE.MathUtils.degToRad(deviceHeading));
+
+    // Smooth Rotation Math (Shortest Path Circular Lerp)
+    let desiredYaw = THREE.MathUtils.degToRad(targetBearing - deviceHeading);
+    let diff = desiredYaw - currentYaw;
+    
+    while (diff < -Math.PI) diff += Math.PI * 2;
+    while (diff > Math.PI) diff -= Math.PI * 2;
+
+    currentYaw += diff * 0.1; // 0.1 is the smoothing speed
+    
+    // Rotate around the Y-axis (the vertical axis) to point Left/Right
+    arrowMesh.rotation.y = -currentYaw; 
+
     renderer.render(scene, camera);
 }
 
+// --- MATH HELPERS ---
 function getDistance(lat1, lon1, lat2, lon2) {
     const R = 6371e3;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const dLat = (lat2-lat1)*Math.PI/180;
+    const dLon = (lon2-lon1)*Math.PI/180;
+    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
 function getBearing(lat1, lon1, lat2, lon2) {
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const y = Math.sin(dLon) * Math.cos(lat2 * Math.PI / 180);
-    const x = Math.cos(lat1 * Math.PI / 180) * Math.sin(lat2 * Math.PI / 180) - Math.sin(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.cos(dLon);
-    return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+    const dLon = (lon2-lon1)*Math.PI/180;
+    const y = Math.sin(dLon)*Math.cos(lat2*Math.PI/180);
+    const x = Math.cos(lat1*Math.PI/180)*Math.sin(lat2*Math.PI/180) - Math.sin(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.cos(dLon);
+    return (Math.atan2(y, x)*180/Math.PI + 360) % 360;
 }
 </script>
 </body>
