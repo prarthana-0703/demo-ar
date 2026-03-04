@@ -1,388 +1,223 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>VIT AR Navigation - L Block</title>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.css" rel="stylesheet">
+    <style>
+        body { margin: 0; overflow: hidden; background: black; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        #camera-feed { position: fixed; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; }
+        #ar-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; }
+        
+        #hud {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.8); padding: 12px 25px; border-radius: 30px;
+            border: 2px solid #00ff00; color: white; font-size: 16px; z-index: 10; text-align: center;
+            min-width: 200px; transition: all 0.3s ease;
+        }
 
-<title>AR Navigation</title>
+        #distance {
+            position: fixed; bottom: 180px; left: 50%; transform: translateX(-50%);
+            color: #00ff00; font-size: 28px; font-weight: bold; text-shadow: 2px 2px 8px rgba(0,0,0,0.8); z-index: 10;
+        }
 
-<link href="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.css" rel="stylesheet">
+        #mini-map {
+            position: fixed; bottom: 20px; right: 20px; width: 130px; height: 130px;
+            border-radius: 50%; border: 3px solid white; z-index: 10; overflow: hidden;
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+        }
 
-<style>
-
-body{
-margin:0;
-overflow:hidden;
-background:black;
-font-family:sans-serif;
-}
-
-/* Camera */
-
-#camera-feed{
-position:fixed;
-top:0;
-left:0;
-width:100%;
-height:100%;
-object-fit:cover;
-z-index:0;
-}
-
-/* AR Canvas */
-
-#ar-canvas{
-position:fixed;
-top:0;
-left:0;
-width:100%;
-height:100%;
-z-index:2;
-pointer-events:none;
-}
-
-/* HUD */
-
-#hud{
-position:fixed;
-top:40px;
-left:50%;
-transform:translateX(-50%);
-background:rgba(0,0,0,0.8);
-padding:12px 25px;
-border-radius:40px;
-border:3px solid #00ff00;
-color:white;
-font-size:18px;
-font-weight:bold;
-z-index:10;
-}
-
-/* Distance */
-
-#distance{
-position:fixed;
-bottom:200px;
-left:50%;
-transform:translateX(-50%);
-color:white;
-font-size:22px;
-font-weight:bold;
-z-index:10;
-}
-
-/* Mini map */
-
-#mini-map{
-position:fixed;
-bottom:20px;
-right:20px;
-width:150px;
-height:150px;
-border-radius:20px;
-border:4px solid white;
-z-index:10;
-}
-
-/* Start button */
-
-#start-btn{
-position:fixed;
-top:50%;
-left:50%;
-transform:translate(-50%,-50%);
-padding:20px 40px;
-font-size:20px;
-background:#00e5ff;
-border:none;
-border-radius:40px;
-font-weight:bold;
-z-index:50;
-cursor:pointer;
-}
-
-</style>
+        #start-btn {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            padding: 20px 40px; font-size: 20px; background: #00ff00; border: none;
+            border-radius: 50px; font-weight: bold; z-index: 100; cursor: pointer;
+            box-shadow: 0 0 30px rgba(0,255,0,0.4);
+        }
+    </style>
 </head>
-
 <body>
 
 <video id="camera-feed" autoplay playsinline muted></video>
-
 <canvas id="ar-canvas"></canvas>
-
-<div id="hud">Press Start</div>
-
-<div id="distance"></div>
-
+<div id="hud">Target: L-Block Hostel</div>
+<div id="distance">--- m</div>
 <div id="mini-map"></div>
-
-<button id="start-btn" onclick="startAR()">ENTER AR MODE</button>
+<button id="start-btn" onclick="startAR()">START NAVIGATION</button>
 
 <script src="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
 <script>
-
 // CONFIG
+const MAPBOX_TOKEN = "pk.eyJ1IjoiaGVtYW50aDg1MDMiLCJhIjoiY21rNzV5c2w2MHlqeTNncjI5bjkyeWJwaiJ9.NnunzAB_24Ntn83H5hRcyQ"; 
+// Updated Coordinates for L-Block VIT Vellore
+const DESTINATION = [79.1557, 12.9754]; 
 
-const MAPBOX_TOKEN="YOUR_MAPBOX_TOKEN";
-const DESTINATION=[79.1591,12.9716]; // SJT Tower
+let scene, camera, renderer, arrowMesh;
+let map, userMarker;
+let targetBearing = 0;
+let deviceHeading = 0;
+let isRunning = false;
 
+async function startAR() {
+    // iOS Compass Permission
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        try {
+            const response = await DeviceOrientationEvent.requestPermission();
+            if (response !== 'granted') return alert("Sensor access denied.");
+        } catch (e) { console.error(e); }
+    }
 
-// VARIABLES
+    document.getElementById("start-btn").style.display = "none";
+    
+    // Start Camera
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: "environment", focusMode: "continuous" } 
+        });
+        document.getElementById("camera-feed").srcObject = stream;
+    } catch (err) {
+        alert("Camera required for AR mode.");
+    }
 
-let scene,camera,renderer;
-let arrowMesh;
-let map,userMarker;
-let routeCoords=[];
+    initThree();
+    initMap();
 
-let targetBearing=0;
-let deviceHeading=0;
-
-let isRunning=false;
-
-
-// START
-
-async function startAR(){
-
-document.getElementById("start-btn").style.display="none";
-document.getElementById("hud").innerText="Getting Location...";
-
-const stream=await navigator.mediaDevices.getUserMedia({
-video:{facingMode:"environment"}
-});
-
-document.getElementById("camera-feed").srcObject=stream;
-
-initThree();
-initMap();
-
-navigator.geolocation.watchPosition(handleGPS);
-window.addEventListener("deviceorientation",handleOrientation);
-
-isRunning=true;
-
-animate();
-
+    // High Accuracy GPS tracking
+    navigator.geolocation.watchPosition(handleGPS, (err) => console.error(err), { 
+        enableHighAccuracy: true,
+        maximumAge: 1000 
+    });
+    
+    window.addEventListener("deviceorientation", handleOrientation, true);
+    isRunning = true;
+    animate();
 }
 
+function initThree() {
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 2, 5); 
+    camera.lookAt(0, 0, 0);
 
-// THREE.JS
+    renderer = new THREE.WebGLRenderer({
+        canvas: document.getElementById("ar-canvas"),
+        alpha: true,
+        antialias: true
+    });
+    renderer.setSize(window.innerWidth, window.innerHeight);
 
-function initThree(){
+    // Arrow Design
+    const shape = new THREE.Shape();
+    shape.moveTo(0, 0.8);   // Tip
+    shape.lineTo(0.4, 0);   // Right side
+    shape.lineTo(0.15, 0);  // Inner right
+    shape.lineTo(0.15, -0.6); // Base right
+    shape.lineTo(-0.15, -0.6);// Base left
+    shape.lineTo(-0.15, 0); // Inner left
+    shape.lineTo(-0.4, 0);  // Left side
+    shape.closePath();
 
-scene=new THREE.Scene();
+    const geometry = new THREE.ExtrudeGeometry(shape, { depth: 0.15, bevelEnabled: false });
+    const material = new THREE.MeshPhongMaterial({ 
+        color: 0x00ff00, 
+        emissive: 0x002200,
+        shininess: 100 
+    });
+    
+    arrowMesh = new THREE.Mesh(geometry, material);
+    arrowMesh.rotation.x = -Math.PI / 2; 
+    scene.add(arrowMesh);
 
-camera=new THREE.PerspectiveCamera(
-70,
-window.innerWidth/window.innerHeight,
-0.1,
-1000
-);
-
-camera.position.set(0,0,0);
-camera.lookAt(0,0,-5);
-
-renderer=new THREE.WebGLRenderer({
-canvas:document.getElementById("ar-canvas"),
-alpha:true,
-antialias:true
-});
-
-renderer.setSize(window.innerWidth,window.innerHeight);
-
-
-// ARROW SHAPE
-
-const shape=new THREE.Shape();
-
-shape.moveTo(0.3,0);
-shape.lineTo(0.3,1.5);
-shape.lineTo(1,1.5);
-shape.lineTo(0,2.5);
-shape.lineTo(-1,1.5);
-shape.lineTo(-0.3,1.5);
-shape.lineTo(-0.3,0);
-
-const geo=new THREE.ExtrudeGeometry(shape,{
-depth:0.2,
-bevelEnabled:true
-});
-
-geo.center();
-
-const material=new THREE.MeshPhongMaterial({
-color:0x00ff00,
-emissive:0x00ff00,
-emissiveIntensity:1
-});
-
-arrowMesh=new THREE.Mesh(geo,material);
-
-arrowMesh.rotation.x=-Math.PI/2;
-arrowMesh.position.set(0,0,-2);
-arrowMesh.scale.set(1.5,1.5,1.5);
-
-scene.add(arrowMesh);
-
-
-// LIGHT
-
-scene.add(new THREE.AmbientLight(0xffffff,0.8));
-
-const light=new THREE.DirectionalLight(0xffffff,0.8);
-light.position.set(5,10,7);
-scene.add(light);
-
+    const light = new THREE.PointLight(0xffffff, 1, 100);
+    light.position.set(0, 5, 5);
+    scene.add(light);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
 }
 
+function initMap() {
+    mapboxgl.accessToken = MAPBOX_TOKEN;
+    map = new mapboxgl.Map({
+        container: "mini-map",
+        style: "mapbox://styles/mapbox/navigation-night-v1",
+        center: DESTINATION,
+        zoom: 16,
+        interactive: false
+    });
 
-// MAP
-
-function initMap(){
-
-mapboxgl.accessToken=MAPBOX_TOKEN;
-
-map=new mapboxgl.Map({
-container:"mini-map",
-style:"mapbox://styles/mapbox/dark-v11",
-center:DESTINATION,
-zoom:16
-});
-
-new mapboxgl.Marker({color:"red"}).setLngLat(DESTINATION).addTo(map);
-
-userMarker=new mapboxgl.Marker().setLngLat(DESTINATION).addTo(map);
-
+    new mapboxgl.Marker({ color: "#ff0000" }).setLngLat(DESTINATION).addTo(map);
+    userMarker = new mapboxgl.Marker({ color: "#00ff00" }).setLngLat([0, 0]).addTo(map);
 }
 
+async function handleGPS(pos) {
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
 
-// GPS
+    userMarker.setLngLat([lng, lat]);
+    map.easeTo({ center: [lng, lat], duration: 1000 });
 
-function handleGPS(pos){
+    const dist = getDistance(lat, lng, DESTINATION[1], DESTINATION[0]);
+    document.getElementById("distance").innerText = Math.round(dist) + " m";
 
-const lat=pos.coords.latitude;
-const lng=pos.coords.longitude;
+    // Arrival Logic
+    const hud = document.getElementById("hud");
+    if (dist < 10) {
+        hud.innerText = "ARRIVED AT L-BLOCK";
+        hud.style.borderColor = "#ffd700";
+        hud.style.color = "#ffd700";
+        arrowMesh.material.color.setHex(0xffd700);
+    } else {
+        hud.innerText = "Heading to L-Block Hostel";
+    }
 
-if(map){
-
-userMarker.setLngLat([lng,lat]);
-
-map.flyTo({
-center:[lng,lat],
-zoom:17
-});
-
+    // Routing
+    const url = `https://api.mapbox.com/directions/v5/mapbox/walking/${lng},${lat};${DESTINATION[0]},${DESTINATION[1]}?geometries=geojson&access_token=${MAPBOX_TOKEN}`;
+    
+    try {
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.routes && data.routes.length > 0) {
+            const coords = data.routes[0].geometry.coordinates;
+            const nextPoint = coords.length > 1 ? coords[1] : DESTINATION;
+            targetBearing = getBearing(lat, lng, nextPoint[1], nextPoint[0]);
+        }
+    } catch (e) { console.error("Route error:", e); }
 }
 
-if(routeCoords.length===0){
-getRoute(lat,lng);
+function handleOrientation(e) {
+    deviceHeading = e.webkitCompassHeading || (360 - e.alpha);
 }
 
-const dist=getDistance(
-lat,
-lng,
-DESTINATION[1],
-DESTINATION[0]
-);
+function animate() {
+    requestAnimationFrame(animate);
+    if (!isRunning) return;
 
-document.getElementById("distance").innerText=
-"Distance "+Math.round(dist)+" m";
+    const bearingRad = THREE.MathUtils.degToRad(targetBearing);
+    const headingRad = THREE.MathUtils.degToRad(deviceHeading);
+    
+    // Smoothly rotate arrow (z-axis is our "direction" in this camera setup)
+    let diff = bearingRad - headingRad;
+    arrowMesh.rotation.z = -diff; 
 
+    renderer.render(scene, camera);
 }
 
-
-// COMPASS
-
-function handleOrientation(e){
-
-if(e.webkitCompassHeading){
-deviceHeading=e.webkitCompassHeading;
-}
-else{
-deviceHeading=360-e.alpha;
+// Haversine Formula
+function getDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371e3;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+function getBearing(lat1, lon1, lat2, lon2) {
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const y = Math.sin(dLon) * Math.cos(lat2 * Math.PI / 180);
+    const x = Math.cos(lat1 * Math.PI / 180) * Math.sin(lat2 * Math.PI / 180) - Math.sin(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.cos(dLon);
+    return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
 }
-
-
-// ANIMATION
-
-function animate(){
-
-requestAnimationFrame(animate);
-
-if(!isRunning) return;
-
-const bearingRad=THREE.MathUtils.degToRad(targetBearing);
-const headingRad=THREE.MathUtils.degToRad(deviceHeading);
-
-let desired=bearingRad-headingRad;
-
-desired=Math.atan2(Math.sin(desired),Math.cos(desired));
-
-arrowMesh.rotation.y+=(desired-arrowMesh.rotation.y)*0.1;
-
-renderer.render(scene,camera);
-
-}
-
-
-// ROUTE
-
-async function getRoute(lat,lng){
-
-const url=`https://api.mapbox.com/directions/v5/mapbox/walking/${lng},${lat};${DESTINATION[0]},${DESTINATION[1]}?geometries=geojson&access_token=${MAPBOX_TOKEN}`;
-
-const res=await fetch(url);
-const data=await res.json();
-
-routeCoords=data.routes[0].geometry.coordinates;
-
-const next=routeCoords[10];
-
-targetBearing=getBearing(lat,lng,next[1],next[0]);
-
-}
-
-
-// DISTANCE
-
-function getDistance(lat1,lon1,lat2,lon2){
-
-const R=6371e3;
-
-const dLat=(lat2-lat1)*Math.PI/180;
-const dLon=(lon2-lon1)*Math.PI/180;
-
-const a=Math.sin(dLat/2)**2+
-Math.cos(lat1*Math.PI/180)*
-Math.cos(lat2*Math.PI/180)*
-Math.sin(dLon/2)**2;
-
-return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
-
-}
-
-
-// BEARING
-
-function getBearing(lat1,lon1,lat2,lon2){
-
-const dLon=(lon2-lon1)*Math.PI/180;
-
-const y=Math.sin(dLon)*Math.cos(lat2*Math.PI/180);
-
-const x=Math.cos(lat1*Math.PI/180)*Math.sin(lat2*Math.PI/180)
--
-Math.sin(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.cos(dLon);
-
-return (Math.atan2(y,x)*180/Math.PI+360)%360;
-
-}
-
 </script>
-
 </body>
 </html>
