@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AR Wedding Navigation</title>
+
+<title>AR Navigation</title>
 
 <link href="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.css" rel="stylesheet">
 
@@ -16,6 +17,8 @@ background:black;
 font-family:sans-serif;
 }
 
+/* Camera */
+
 #camera-feed{
 position:fixed;
 top:0;
@@ -23,8 +26,10 @@ left:0;
 width:100%;
 height:100%;
 object-fit:cover;
-z-index:-2;
+z-index:0;
 }
+
+/* AR Canvas */
 
 #ar-canvas{
 position:fixed;
@@ -32,8 +37,41 @@ top:0;
 left:0;
 width:100%;
 height:100%;
-z-index:-1;
+z-index:2;
+pointer-events:none;
 }
+
+/* HUD */
+
+#hud{
+position:fixed;
+top:40px;
+left:50%;
+transform:translateX(-50%);
+background:rgba(0,0,0,0.8);
+padding:12px 25px;
+border-radius:40px;
+border:3px solid #00ff00;
+color:white;
+font-size:18px;
+font-weight:bold;
+z-index:10;
+}
+
+/* Distance */
+
+#distance{
+position:fixed;
+bottom:200px;
+left:50%;
+transform:translateX(-50%);
+color:white;
+font-size:22px;
+font-weight:bold;
+z-index:10;
+}
+
+/* Mini map */
 
 #mini-map{
 position:fixed;
@@ -46,37 +84,14 @@ border:4px solid white;
 z-index:10;
 }
 
-#hud{
-position:fixed;
-top:40px;
-left:50%;
-transform:translateX(-50%);
-background:rgba(0,0,0,0.8);
-padding:12px 30px;
-border-radius:40px;
-border:3px solid #00ff00;
-color:white;
-font-size:18px;
-font-weight:bold;
-z-index:10;
-}
-
-#distance{
-position:fixed;
-bottom:200px;
-left:50%;
-transform:translateX(-50%);
-color:white;
-font-size:20px;
-font-weight:bold;
-}
+/* Start button */
 
 #start-btn{
 position:fixed;
 top:50%;
 left:50%;
 transform:translate(-50%,-50%);
-padding:18px 40px;
+padding:20px 40px;
 font-size:20px;
 background:#00e5ff;
 border:none;
@@ -110,28 +125,19 @@ cursor:pointer;
 
 // CONFIG
 
-const MAPBOX_TOKEN="pk.eyJ1IjoiaGVtYW50aDg1MDMiLCJhIjoiY21rNzV5c2w2MHlqeTNncjI5bjkyeWJwaiJ9.NnunzAB_24Ntn83H5hRcyQ";
-
+const MAPBOX_TOKEN="YOUR_MAPBOX_TOKEN";
 const DESTINATION=[79.1591,12.9716]; // SJT Tower
-
-const LOOK_AHEAD=20;
 
 
 // VARIABLES
 
 let scene,camera,renderer;
-
 let arrowMesh;
-
+let map,userMarker;
 let routeCoords=[];
 
-let map,userMarker;
-
 let targetBearing=0;
-
 let deviceHeading=0;
-
-let speech=window.speechSynthesis;
 
 let isRunning=false;
 
@@ -141,7 +147,6 @@ let isRunning=false;
 async function startAR(){
 
 document.getElementById("start-btn").style.display="none";
-
 document.getElementById("hud").innerText="Getting Location...";
 
 const stream=await navigator.mediaDevices.getUserMedia({
@@ -151,11 +156,9 @@ video:{facingMode:"environment"}
 document.getElementById("camera-feed").srcObject=stream;
 
 initThree();
-
 initMap();
 
 navigator.geolocation.watchPosition(handleGPS);
-
 window.addEventListener("deviceorientation",handleOrientation);
 
 isRunning=true;
@@ -165,13 +168,21 @@ animate();
 }
 
 
-// THREE
+// THREE.JS
 
 function initThree(){
 
 scene=new THREE.Scene();
 
-camera=new THREE.PerspectiveCamera(70,window.innerWidth/window.innerHeight,0.1,1000);
+camera=new THREE.PerspectiveCamera(
+70,
+window.innerWidth/window.innerHeight,
+0.1,
+1000
+);
+
+camera.position.set(0,0,0);
+camera.lookAt(0,0,-5);
 
 renderer=new THREE.WebGLRenderer({
 canvas:document.getElementById("ar-canvas"),
@@ -180,6 +191,9 @@ antialias:true
 });
 
 renderer.setSize(window.innerWidth,window.innerHeight);
+
+
+// ARROW SHAPE
 
 const shape=new THREE.Shape();
 
@@ -200,23 +214,25 @@ geo.center();
 
 const material=new THREE.MeshPhongMaterial({
 color:0x00ff00,
-emissive:0x00ff00
+emissive:0x00ff00,
+emissiveIntensity:1
 });
 
 arrowMesh=new THREE.Mesh(geo,material);
 
 arrowMesh.rotation.x=-Math.PI/2;
-
-arrowMesh.position.set(0,-1.5,-4);
+arrowMesh.position.set(0,0,-2);
+arrowMesh.scale.set(1.5,1.5,1.5);
 
 scene.add(arrowMesh);
 
-scene.add(new THREE.AmbientLight(0xffffff,0.7));
+
+// LIGHT
+
+scene.add(new THREE.AmbientLight(0xffffff,0.8));
 
 const light=new THREE.DirectionalLight(0xffffff,0.8);
-
 light.position.set(5,10,7);
-
 scene.add(light);
 
 }
@@ -247,38 +263,32 @@ userMarker=new mapboxgl.Marker().setLngLat(DESTINATION).addTo(map);
 function handleGPS(pos){
 
 const lat=pos.coords.latitude;
-
 const lng=pos.coords.longitude;
 
 if(map){
 
 userMarker.setLngLat([lng,lat]);
 
-map.flyTo({center:[lng,lat],zoom:17});
+map.flyTo({
+center:[lng,lat],
+zoom:17
+});
 
 }
 
 if(routeCoords.length===0){
-
 getRoute(lat,lng);
-
 }
 
-const carrot=getCarrot(lat,lng);
+const dist=getDistance(
+lat,
+lng,
+DESTINATION[1],
+DESTINATION[0]
+);
 
-targetBearing=getBearing(lat,lng,carrot[1],carrot[0]);
-
-const dist=getDistance(lat,lng,DESTINATION[1],DESTINATION[0]);
-
-document.getElementById("distance").innerText="Distance "+Math.round(dist)+" m";
-
-if(dist<5){
-
-document.getElementById("hud").innerText="🎉 Destination Reached";
-
-speak("You have reached your destination");
-
-}
+document.getElementById("distance").innerText=
+"Distance "+Math.round(dist)+" m";
 
 }
 
@@ -288,15 +298,10 @@ speak("You have reached your destination");
 function handleOrientation(e){
 
 if(e.webkitCompassHeading){
-
 deviceHeading=e.webkitCompassHeading;
-
 }
-
 else{
-
 deviceHeading=360-e.alpha;
-
 }
 
 }
@@ -310,17 +315,14 @@ requestAnimationFrame(animate);
 
 if(!isRunning) return;
 
-let bearingRad=THREE.MathUtils.degToRad(targetBearing);
-
-let headingRad=THREE.MathUtils.degToRad(deviceHeading);
+const bearingRad=THREE.MathUtils.degToRad(targetBearing);
+const headingRad=THREE.MathUtils.degToRad(deviceHeading);
 
 let desired=bearingRad-headingRad;
 
 desired=Math.atan2(Math.sin(desired),Math.cos(desired));
 
 arrowMesh.rotation.y+=(desired-arrowMesh.rotation.y)*0.1;
-
-arrowMesh.position.y=-1.5+Math.sin(Date.now()*0.003)*0.1;
 
 renderer.render(scene,camera);
 
@@ -334,48 +336,13 @@ async function getRoute(lat,lng){
 const url=`https://api.mapbox.com/directions/v5/mapbox/walking/${lng},${lat};${DESTINATION[0]},${DESTINATION[1]}?geometries=geojson&access_token=${MAPBOX_TOKEN}`;
 
 const res=await fetch(url);
-
 const data=await res.json();
 
 routeCoords=data.routes[0].geometry.coordinates;
 
-}
+const next=routeCoords[10];
 
-
-// CARROT POINT
-
-function getCarrot(lat,lng){
-
-let closest=0;
-
-let min=Infinity;
-
-for(let i=0;i<routeCoords.length;i++){
-
-const d=getDistance(lat,lng,routeCoords[i][1],routeCoords[i][0]);
-
-if(d<min){
-
-min=d;
-
-closest=i;
-
-}
-
-}
-
-return routeCoords[Math.min(closest+10,routeCoords.length-1)];
-
-}
-
-
-// SPEECH
-
-function speak(text){
-
-const msg=new SpeechSynthesisUtterance(text);
-
-speech.speak(msg);
+targetBearing=getBearing(lat,lng,next[1],next[0]);
 
 }
 
@@ -387,15 +354,11 @@ function getDistance(lat1,lon1,lat2,lon2){
 const R=6371e3;
 
 const dLat=(lat2-lat1)*Math.PI/180;
-
 const dLon=(lon2-lon1)*Math.PI/180;
 
 const a=Math.sin(dLat/2)**2+
-
 Math.cos(lat1*Math.PI/180)*
-
 Math.cos(lat2*Math.PI/180)*
-
 Math.sin(dLon/2)**2;
 
 return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
@@ -412,9 +375,7 @@ const dLon=(lon2-lon1)*Math.PI/180;
 const y=Math.sin(dLon)*Math.cos(lat2*Math.PI/180);
 
 const x=Math.cos(lat1*Math.PI/180)*Math.sin(lat2*Math.PI/180)
-
 -
-
 Math.sin(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.cos(dLon);
 
 return (Math.atan2(y,x)*180/Math.PI+360)%360;
