@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
@@ -42,7 +43,7 @@ position:fixed;
 top:20px;
 left:50%;
 transform:translateX(-50%);
-background:rgba(0,0,0,0.8);
+background:rgba(0,0,0,0.85);
 padding:12px 25px;
 border-radius:30px;
 border:2px solid #00ff00;
@@ -50,16 +51,16 @@ color:white;
 font-size:16px;
 z-index:10;
 text-align:center;
-min-width:220px;
+min-width:230px;
 }
 
 #distance{
 position:fixed;
-bottom:180px;
+bottom:190px;
 left:50%;
 transform:translateX(-50%);
 color:#00ff00;
-font-size:28px;
+font-size:30px;
 font-weight:bold;
 text-shadow:2px 2px 8px rgba(0,0,0,0.8);
 z-index:10;
@@ -69,12 +70,13 @@ z-index:10;
 position:fixed;
 bottom:20px;
 right:20px;
-width:130px;
-height:130px;
+width:160px;
+height:160px;
 border-radius:50%;
 border:3px solid white;
 z-index:10;
 overflow:hidden;
+background:black;
 }
 
 #start-btn{
@@ -102,6 +104,7 @@ cursor:pointer;
 
 <div id="hud">Target: Q Block Hostel</div>
 <div id="distance">--- m</div>
+
 <div id="mini-map"></div>
 
 <button id="start-btn" onclick="startAR()">START NAVIGATION</button>
@@ -111,11 +114,11 @@ cursor:pointer;
 
 <script>
 
-/* ===================== CONFIG ===================== */
+/* CONFIG */
 
 const MAPBOX_TOKEN = "YOUR_MAPBOX_TOKEN";
 
-const DESTINATION = [79.1664079,12.9711674]; // VIT Q Block
+const DESTINATION = [79.1664079,12.9711674];
 
 let scene,camera,renderer,arrowMesh;
 let map,userMarker;
@@ -127,7 +130,7 @@ let smoothHeading=0;
 let isRunning=false;
 
 
-/* ===================== START AR ===================== */
+/* START AR */
 
 async function startAR(){
 
@@ -149,23 +152,19 @@ return;
 
 document.getElementById("start-btn").style.display="none";
 
-/* CAMERA */
-
 try{
 
 const stream = await navigator.mediaDevices.getUserMedia({
 video:{facingMode:"environment"}
 });
 
-document.getElementById("camera-feed").srcObject = stream;
+document.getElementById("camera-feed").srcObject=stream;
 
 }catch(e){
 
 alert("Camera access failed");
 
 }
-
-/* INIT */
 
 initThree();
 initMap();
@@ -185,13 +184,13 @@ animate();
 }
 
 
-/* ===================== THREE JS ===================== */
+/* THREE JS */
 
 function initThree(){
 
-scene = new THREE.Scene();
+scene=new THREE.Scene();
 
-camera = new THREE.PerspectiveCamera(
+camera=new THREE.PerspectiveCamera(
 75,
 window.innerWidth/window.innerHeight,
 0.1,
@@ -200,7 +199,7 @@ window.innerWidth/window.innerHeight,
 
 camera.position.set(0,0,0);
 
-renderer = new THREE.WebGLRenderer({
+renderer=new THREE.WebGLRenderer({
 canvas:document.getElementById("ar-canvas"),
 alpha:true,
 antialias:true
@@ -208,9 +207,10 @@ antialias:true
 
 renderer.setSize(window.innerWidth,window.innerHeight);
 
+
 /* ARROW SHAPE */
 
-const shape = new THREE.Shape();
+const shape=new THREE.Shape();
 
 shape.moveTo(0,0.8);
 shape.lineTo(0.4,0);
@@ -221,35 +221,36 @@ shape.lineTo(-0.15,0);
 shape.lineTo(-0.4,0);
 shape.closePath();
 
-const geometry = new THREE.ExtrudeGeometry(shape,{
+const geometry=new THREE.ExtrudeGeometry(shape,{
 depth:0.15,
 bevelEnabled:false
 });
 
-const material = new THREE.MeshPhongMaterial({
+const material=new THREE.MeshPhongMaterial({
 color:0x00ff00,
 emissive:0x003300
 });
 
-arrowMesh = new THREE.Mesh(geometry,material);
-
-/* PLACE ARROW IN FRONT */
+arrowMesh=new THREE.Mesh(geometry,material);
 
 arrowMesh.position.set(0,-1.5,-5);
 
-arrowMesh.rotation.x = -Math.PI/2;
+arrowMesh.rotation.x=-Math.PI/2;
 
 arrowMesh.scale.set(2,2,2);
 
 scene.add(arrowMesh);
 
-/* LIGHT */
+
+/* LIGHTING */
 
 scene.add(new THREE.AmbientLight(0xffffff,0.8));
 
-const light = new THREE.PointLight(0xffffff,1);
+const light=new THREE.PointLight(0xffffff,1);
 light.position.set(5,5,5);
+
 scene.add(light);
+
 
 /* RESIZE */
 
@@ -257,7 +258,7 @@ window.addEventListener("resize",()=>{
 
 renderer.setSize(window.innerWidth,window.innerHeight);
 
-camera.aspect = window.innerWidth/window.innerHeight;
+camera.aspect=window.innerWidth/window.innerHeight;
 
 camera.updateProjectionMatrix();
 
@@ -266,13 +267,13 @@ camera.updateProjectionMatrix();
 }
 
 
-/* ===================== MAPBOX ===================== */
+/* MAPBOX */
 
 function initMap(){
 
-mapboxgl.accessToken = MAPBOX_TOKEN;
+mapboxgl.accessToken=MAPBOX_TOKEN;
 
-map = new mapboxgl.Map({
+map=new mapboxgl.Map({
 
 container:"mini-map",
 style:"mapbox://styles/mapbox/navigation-night-v1",
@@ -282,33 +283,39 @@ interactive:false
 
 });
 
-map.on("load",()=>map.resize());
+map.on("load",()=>{
+
+map.resize();
+
+setTimeout(()=>map.resize(),1000);
+
+});
 
 new mapboxgl.Marker({color:"#ff0000"})
 .setLngLat(DESTINATION)
 .addTo(map);
 
-userMarker = new mapboxgl.Marker({color:"#00ff00"})
+userMarker=new mapboxgl.Marker({color:"#00ff00"})
 .setLngLat([0,0])
 .addTo(map);
 
 }
 
 
-/* ===================== GPS ===================== */
+/* GPS */
 
 async function handleGPS(pos){
 
-const lat = pos.coords.latitude;
-const lng = pos.coords.longitude;
+const lat=pos.coords.latitude;
+const lng=pos.coords.longitude;
 
 userMarker.setLngLat([lng,lat]);
 
-map.easeTo({center:[lng,lat]});
+map.jumpTo({center:[lng,lat]});
 
-const dist = getDistance(lat,lng,DESTINATION[1],DESTINATION[0]);
+const dist=getDistance(lat,lng,DESTINATION[1],DESTINATION[0]);
 
-document.getElementById("distance").innerText =
+document.getElementById("distance").innerText=
 Math.round(dist)+" m";
 
 if(dist<15){
@@ -319,24 +326,22 @@ arrowMesh.material.color.setHex(0xffd700);
 
 }
 
-/* MAPBOX ROUTE */
-
 try{
 
-const url =
+const url=
 `https://api.mapbox.com/directions/v5/mapbox/walking/${lng},${lat};${DESTINATION[0]},${DESTINATION[1]}?geometries=geojson&access_token=${MAPBOX_TOKEN}`;
 
-const res = await fetch(url);
+const res=await fetch(url);
 
-const data = await res.json();
+const data=await res.json();
 
 if(data.routes && data.routes.length>0){
 
-let coords = data.routes[0].geometry.coordinates;
+let coords=data.routes[0].geometry.coordinates;
 
-let nextPoint = coords.length>1 ? coords[1] : DESTINATION;
+let nextPoint=coords.length>1?coords[1]:DESTINATION;
 
-targetBearing = getBearing(
+targetBearing=getBearing(
 lat,lng,
 nextPoint[1],
 nextPoint[0]
@@ -353,7 +358,7 @@ console.log("Route error");
 }
 
 
-/* ===================== COMPASS ===================== */
+/* COMPASS */
 
 function handleOrientation(e){
 
@@ -361,26 +366,26 @@ let heading;
 
 if(e.webkitCompassHeading){
 
-heading = e.webkitCompassHeading;
+heading=e.webkitCompassHeading;
 
-}else if(e.alpha !== null){
+}else if(e.alpha!==null){
 
-heading = 360 - e.alpha;
-
-}
-
-if(heading !== undefined){
-
-smoothHeading = smoothHeading*0.9 + heading*0.1;
-
-deviceHeading = smoothHeading;
+heading=360-e.alpha;
 
 }
 
+if(heading!==undefined){
+
+smoothHeading=smoothHeading*0.9+heading*0.1;
+
+deviceHeading=smoothHeading;
+
+}
+
 }
 
 
-/* ===================== ANIMATION ===================== */
+/* ANIMATION */
 
 function animate(){
 
@@ -388,19 +393,19 @@ requestAnimationFrame(animate);
 
 if(!isRunning) return;
 
-let diff = THREE.MathUtils.degToRad(targetBearing-deviceHeading);
+let diff=THREE.MathUtils.degToRad(targetBearing-deviceHeading);
 
-while(diff < -Math.PI) diff += Math.PI*2;
-while(diff > Math.PI) diff -= Math.PI*2;
+while(diff<-Math.PI) diff+=Math.PI*2;
+while(diff>Math.PI) diff-=Math.PI*2;
 
-arrowMesh.rotation.z += (-diff-arrowMesh.rotation.z)*0.15;
+arrowMesh.rotation.z+=(-diff-arrowMesh.rotation.z)*0.15;
 
 renderer.render(scene,camera);
 
 }
 
 
-/* ===================== DISTANCE ===================== */
+/* DISTANCE */
 
 function getDistance(lat1,lon1,lat2,lon2){
 
@@ -409,18 +414,18 @@ const R=6371e3;
 const dLat=(lat2-lat1)*Math.PI/180;
 const dLon=(lon2-lon1)*Math.PI/180;
 
-const a =
-Math.sin(dLat/2)*Math.sin(dLat/2)+
+const a=
+Math.sin(dLat/2)**2+
 Math.cos(lat1*Math.PI/180)*
 Math.cos(lat2*Math.PI/180)*
-Math.sin(dLon/2)*Math.sin(dLon/2);
+Math.sin(dLon/2)**2;
 
 return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 
 }
 
 
-/* ===================== BEARING ===================== */
+/* BEARING */
 
 function getBearing(lat1,lon1,lat2,lon2){
 
