@@ -1,63 +1,27 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Elite AR Wedding Portal - M.Tech Edition</title>
+    <title>AR Eternal Blessing Wall</title>
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
 
     <style>
         body { margin: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; }
-
-        /* Glassmorphism UI - Higher Attraction & Stimulation (UEQ-S) */
         #blessingPanel {
-            position: absolute;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            padding: 15px;
-            border-radius: 20px;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-            z-index: 10;
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            width: 85%;
-            max-width: 450px;
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.3); padding: 15px;
+            border-radius: 20px; z-index: 10; display: flex; gap: 10px;
+            width: 85%; max-width: 450px;
         }
-
-        #blessingInput {
-            flex-grow: 1;
-            padding: 12px;
-            border-radius: 12px;
-            border: none;
-            background: rgba(255, 255, 255, 0.9);
-            outline: none;
-            font-size: 14px;
-        }
-
-        #sendBtn {
-            padding: 12px 20px;
-            background: linear-gradient(45deg, #FFD700, #b8860b);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: transform 0.2s;
-        }
-
-        #sendBtn:active { transform: scale(0.95); }
+        #blessingInput { flex-grow: 1; padding: 12px; border-radius: 12px; border: none; outline: none; }
+        #sendBtn { padding: 12px 20px; background: linear-gradient(45deg, #FFD700, #b8860b); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; }
     </style>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
         import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
 
-        // Firebase Configuration - Essential for Empirical Data Collection
         const firebaseConfig = {
             apiKey: "AIzaSyDJ17F9vJKFy329miOBgRpeR8WxV7wT_8g",
             authDomain: "ar-invitation-card.firebaseapp.com",
@@ -68,98 +32,66 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // Global function for the HTML button
+        let messageCount = 0;
+
         window.sendBlessing = function() {
             const text = document.getElementById("blessingInput").value;
             if(text.trim() == "") return;
-
-            push(ref(db, "blessings"), {
-                message: text,
-                time: Date.now()
-            });
-
+            push(ref(db, "blessings"), { message: text, time: Date.now() });
             document.getElementById("blessingInput").value = "";
         };
 
-        // Listening for new blessings - Real-time Participation Feature
         onChildAdded(ref(db, "blessings"), (snapshot) => {
             const data = snapshot.val();
-            spawnARMessage(data.message);
+            addTextToWall(data.message);
         });
 
-        function spawnARMessage(text) {
-            const marker = document.querySelector("#marker");
-            const blessing = document.createElement("a-entity");
+        function addTextToWall(text) {
+            const wall = document.querySelector("#blessing-wall");
             
-            // Randomized spawn logic for dynamic multimedia engagement
-            const x = (Math.random() * 2) - 1;
-            const z = (Math.random() * 2) - 1.5;
-            blessing.setAttribute("position", `${x} 0.5 ${z}`);
+            const msgEntity = document.createElement("a-text");
+            // Stack messages vertically: each new message moves down
+            const yOffset = 0.8 - (messageCount * 0.25); 
+            
+            msgEntity.setAttribute("value", "• " + text);
+            msgEntity.setAttribute("position", `-0.7 ${yOffset} 0.02`);
+            msgEntity.setAttribute("color", "#b8860b");
+            msgText.setAttribute("font", "mozillavr");
+            msgEntity.setAttribute("scale", "0.6 0.6 0.6");
+            msgEntity.setAttribute("width", "3");
 
-            // The Message Card
-            const card = document.createElement("a-plane");
-            card.setAttribute("width", "1.6");
-            card.setAttribute("height", "0.5");
-            card.setAttribute("color", "#ffffff");
-            card.setAttribute("material", "opacity: 0.9; transparent: true");
-            card.setAttribute("rotation", "-90 0 0");
-
-            // Animation: Rise effect - Improving Emotional Connection
-            card.setAttribute("animation", "property: position; to: 0 1.8 0; dur: 6000; easing: easeOutQuad");
-
-            const msgText = document.createElement("a-text");
-            msgText.setAttribute("value", text);
-            msgText.setAttribute("align", "center");
-            msgText.setAttribute("color", "#b8860b");
-            msgText.setAttribute("scale", "0.7 0.7 0.7");
-            msgText.setAttribute("position", "0 0 0.02");
-
-            card.appendChild(msgText);
-            blessing.appendChild(card);
-            marker.appendChild(blessing);
-
-            // Auto-cleanup - MDLC Testing phase requirement
-            setTimeout(() => {
-                if(blessing.parentNode) blessing.parentNode.removeChild(blessing);
-            }, 10000);
+            wall.appendChild(msgEntity);
+            messageCount++;
         }
     </script>
 </head>
 
 <body>
-
     <div id="blessingPanel">
-        <input id="blessingInput" placeholder="Send a blessing ❤️">
+        <input id="blessingInput" placeholder="Write a blessing forever...">
         <button id="sendBtn" onclick="sendBlessing()">Send</button>
     </div>
 
     <a-scene embedded vr-mode-ui="enabled: false" arjs="sourceType: webcam; debugUIEnabled: false;" cursor="rayOrigin: mouse">
-
         <a-assets>
             <video id="wedding-video" src="GIF_Video_Generation_Successful.mp4" loop muted playsinline crossorigin="anonymous"></video>
-            <img id="music-icon" src="https://cdn-icons-png.flaticon.com/512/727/727245.png">
         </a-assets>
 
-        <audio id="wedding-music" src="wedding-music.mp3" preload="auto"></audio>
-
         <a-marker preset="hiro" id="marker">
-            
-            <a-plane position="0 0.01 0" rotation="-90 0 0" width="2.8" height="3.2" color="#000" opacity="0.4"></a-plane>
+            <a-video src="#wedding-video" position="0.8 0.1 0" rotation="-90 0 0" width="1.8" height="1.1"></a-video>
 
-            <a-text value="Prarthana & Rahul" position="0 0.2 -1.2" align="center" color="#FFD700" scale="1.4 1.4 1.4" rotation="-90 0 0"></a-text>
+            <a-entity id="blessing-wall" position="-1.2 0.1 0" rotation="-90 0 0">
+                <a-plane width="1.6" height="2.2" color="#FFF" opacity="0.8" material="transparent: true"></a-plane>
+                <a-plane width="1.65" height="2.25" color="#FFD700" position="0 0 -0.01"></a-plane>
+                
+                <a-text value="GUEST BLESSINGS" position="0 1.0 0.02" align="center" color="#000" scale="0.8 0.8 0.8"></a-text>
+            </a-entity>
 
-            <a-video src="#wedding-video" position="0 0.1 0" rotation="-90 0 0" width="2.2" height="1.3"></a-video>
-
-            <a-image src="#music-icon" class="clickable" position="1.1 0.2 0.8" rotation="-90 0 0" width="0.4" height="0.4"
-                     onclick="const m = document.querySelector('#wedding-music'); m.paused ? m.play() : m.pause();">
-            </a-image>
-
-            <a-text value="25 December 2026" position="0 0.1 1.2" align="center" color="white" scale="0.9 0.9 0.9" rotation="-90 0 0"></a-text>
-
+            <a-text value="Prarthana & Rahul" position="0.8 0.2 -0.8" align="center" color="#FFD700" rotation="-90 0 0"></a-text>
+            <a-text value="25 Dec 2026" position="0.8 0.2 0.8" align="center" color="white" rotation="-90 0 0"></a-text>
         </a-marker>
 
         <a-entity camera></a-entity>
     </a-scene>
-
 </body>
 </html>
