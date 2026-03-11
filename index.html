@@ -15,11 +15,37 @@ overflow:hidden;
 }
 </style>
 
+<script>
+
+AFRAME.registerComponent('marker-handler',{
+init:function(){
+
+const video=document.querySelector("#wedding-video");
+const music=document.querySelector("#wedding-music");
+
+this.el.addEventListener("markerFound",()=>{
+video.play();
+music.play();
+});
+
+this.el.addEventListener("markerLost",()=>{
+video.pause();
+music.pause();
+});
+
+}
+});
+
+</script>
+
 </head>
 
 <body>
 
-<a-scene embedded arjs>
+<a-scene
+embedded
+vr-mode-ui="enabled:false"
+arjs="sourceType: webcam; debugUIEnabled: false;">
 
 <a-assets>
 
@@ -34,8 +60,11 @@ webkit-playsinline>
 
 </a-assets>
 
+<!-- Wedding Music -->
+<audio id="wedding-music" src="wedding-music.mp3" preload="auto"></audio>
 
-<a-marker preset="hiro">
+
+<a-marker preset="hiro" marker-handler>
 
 <!-- Couple Names -->
 
