@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Elite AR Blessing Wall - Organized</title>
+    <title>Elite AR Blessing Wall - Grid System</title>
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
-    <script src="https://cdn.gh.io/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
 
     <style>
         body { margin: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; }
@@ -32,7 +32,8 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        let blessingCount = 0; // Tracks position for the Grid Algorithm
+        // This counter is the key to preventing overlap
+        let blessingCount = 0; 
 
         window.sendBlessing = function() {
             const text = document.getElementById("blessingInput").value;
@@ -51,27 +52,30 @@
             const marker = document.querySelector("#marker");
             const blessing = document.createElement("a-entity");
             
-            // GRID ALGORITHM: 3 Columns, Infinite Rows
-            const col = index % 3;             // Current column (0, 1, 2)
-            const row = Math.floor(index / 3); // Current row (0, 1, 2...)
+            // GRID LOGIC: 2 Columns for maximum readability
+            const columns = 2;
+            const col = index % columns;             
+            const row = Math.floor(index / columns); 
             
-            // X: Left, Center, Right | Y: Stack upward | Z: Constant depth
-            const xPos = (col - 1) * 1.8;   
+            // Spacing: X shifts left/right | Y stacks up | Z staggers back to prevent flicker
+            const xPos = (col === 0) ? -1.2 : 1.2;   
             const yPos = 0.5 + (row * 0.7); 
+            const zPos = -1.0 - (index * 0.1); // Staggering depth
             
-            blessing.setAttribute("position", `${xPos} ${yPos} -1.5`);
+            blessing.setAttribute("position", `${xPos} ${yPos} ${zPos}`);
 
-            // Message Card with Gold Border
+            // The Message Card
             const card = document.createElement("a-plane");
-            card.setAttribute("width", "1.6");
-            card.setAttribute("height", "0.5");
+            card.setAttribute("width", "2.0");
+            card.setAttribute("height", "0.6");
             card.setAttribute("color", "#ffffff");
             card.setAttribute("material", "opacity: 0.9; transparent: true; side: double");
             card.setAttribute("rotation", "-90 0 0");
 
+            // Gold Border 
             const border = document.createElement("a-plane");
-            border.setAttribute("width", "1.65");
-            border.setAttribute("height", "0.55");
+            border.setAttribute("width", "2.1");
+            border.setAttribute("height", "0.7");
             border.setAttribute("color", "#FFD700");
             border.setAttribute("position", "0 0 -0.01");
             card.appendChild(border);
@@ -79,9 +83,10 @@
             const msgText = document.createElement("a-text");
             msgText.setAttribute("value", text);
             msgText.setAttribute("align", "center");
-            msgText.setAttribute("color", "#444");
-            msgText.setAttribute("scale", "0.6 0.6 0.6");
+            msgText.setAttribute("color", "#333");
+            msgText.setAttribute("scale", "0.8 0.8 0.8");
             msgText.setAttribute("position", "0 0 0.02");
+            msgText.setAttribute("wrap-count", "25"); // Prevents text from leaking out of the box
 
             card.appendChild(msgText);
             blessing.appendChild(card);
@@ -98,8 +103,9 @@
 
     <a-scene embedded vr-mode-ui="enabled: false" arjs="sourceType: webcam; debugUIEnabled: false;" cursor="rayOrigin: mouse">
         <a-marker preset="hiro" id="marker">
-            <a-plane position="0 0.01 0" rotation="-90 0 0" width="6" height="6" color="#000" opacity="0.2"></a-plane>
-            <a-text value="ETERNAL BLESSINGS" position="0 0.2 0" align="center" color="#FFD700" rotation="-90 0 0"></a-text>
+            <a-plane position="0 0.01 0" rotation="-90 0 0" width="6" height="8" color="#000" opacity="0.2"></a-plane>
+            
+            <a-text value="ETERNAL BLESSINGS" position="0 0.2 0" align="center" color="#FFD700" rotation="-90 0 0" scale="1.5 1.5 1.5"></a-text>
         </a-marker>
         <a-entity camera></a-entity>
     </a-scene>
