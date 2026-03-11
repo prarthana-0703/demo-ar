@@ -1,56 +1,48 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Elite AR Moving Gallery</title>
+    <title>AR Horizontal Sliding Gallery</title>
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
-
-    <script>
-        // MDLC Phase: Assembly - Creating the Interactive Multimedia Feature
-        AFRAME.registerComponent('moving-gallery', {
-            init: function () {
-                // List of personalized image assets for integrated multimedia
-                const images = ['#photo1', '#photo2', '#photo3'];
-                let index = 0;
-                const gallery = this.el;
-
-                // Simple Slideshow Logic: Switch image every 3 seconds (3000ms)
-                setInterval(() => {
-                    index = (index + 1) % images.length;
-                    gallery.setAttribute('src', images[index]);
-                    
-                    // Add a subtle fade animation on each change to improve User Experience (SUS)
-                    gallery.emit('fadeout'); 
-                    setTimeout(() => gallery.emit('fadein'), 200);
-                }, 3000); 
-            }
-        });
-    </script>
 </head>
 
-<body>
-    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" cursor="rayOrigin: mouse">
+<body style="margin: 0; overflow: hidden;">
+    <a-scene embedded vr-mode-ui="enabled: false" arjs="sourceType: webcam; debugUIEnabled: false;">
         
         <a-assets>
-            <video id="wedding-video" src="GIF_Video_Generation_Successful.mp4" loop muted playsinline></video>
-            
-            <img id="photo1" src="Screenshot 2026-03-12 001948.png"> 
-            <img id="photo2" src="couple_photo2.jpg">
-            <img id="photo3" src="couple_photo3.jpg">
+            <img id="photo1" src="couple1.jpg"> 
+            <img id="photo2" src="couple2.jpg">
+            <img id="photo3" src="couple3.jpg">
+            <img id="photo4" src="couple4.jpg">
         </a-assets>
 
         <a-marker preset="hiro">
             
-            <a-text value="Prarthana & Rahul" position="0 1.2 -1.2" align="center" color="#FFD700" rotation="-90 0 0" scale="1.2 1.2 1.2"></a-text>
+            <a-text value="Our Journey" position="0 0.5 -1.5" align="center" color="#FFD700" rotation="-90 0 0" scale="1.2 1.2 1.2"></a-text>
 
-            <a-video src="#wedding-video" position="0 0.1 0" rotation="-90 0 0" width="2" height="1.2"></a-video>
+            <a-entity id="gallery-container" 
+                      position="0 0.1 0" 
+                      animation="property: position; from: 1.5 0.1 0; to: -1.5 0.1 0; dur: 8000; dir: alternate; loop: true; easing: linear">
+                
+                <a-image src="#photo1" position="-1.5 0 0" rotation="-90 0 0" width="1.2" height="1.6">
+                    <a-plane color="#FFD700" width="1.25" height="1.65" position="0 0 -0.01"></a-plane>
+                </a-image>
 
-            <a-image id="gallery-display" src="#photo1" moving-gallery position="1.5 0.1 0" rotation="-90 0 0" width="1" height="1.4"
-                     animation__fadein="property: opacity; from: 0; to: 1; dur: 800; startEvents: fadein"
-                     animation__fadeout="property: opacity; from: 1; to: 0; dur: 200; startEvents: fadeout">
-            </a-image>
-            
-            <a-text value="GALLERY" position="1.5 1.0 -1.0" align="center" color="white" rotation="-90 0 0" scale="0.6 0.6 0.6"></a-text>
+                <a-image src="#photo2" position="0 0 0" rotation="-90 0 0" width="1.2" height="1.6">
+                    <a-plane color="#FFD700" width="1.25" height="1.65" position="0 0 -0.01"></a-plane>
+                </a-image>
+
+                <a-image src="#photo3" position="1.5 0 0" rotation="-90 0 0" width="1.2" height="1.6">
+                    <a-plane color="#FFD700" width="1.25" height="1.65" position="0 0 -0.01"></a-plane>
+                </a-image>
+
+                <a-image src="#photo4" position="3.0 0 0" rotation="-90 0 0" width="1.2" height="1.6">
+                    <a-plane color="#FFD700" width="1.25" height="1.65" position="0 0 -0.01"></a-plane>
+                </a-image>
+
+            </a-entity>
+
+            <a-plane position="0 0 0" rotation="-90 0 0" width="4" height="3" color="#000" opacity="0.2"></a-plane>
 
         </a-marker>
 
