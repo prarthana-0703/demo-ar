@@ -6,7 +6,6 @@
 <title>AR Wedding Invitation</title>
 
 <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
-
 <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
 
 <style>
@@ -18,26 +17,18 @@ overflow:hidden;
 
 <script>
 
-AFRAME.registerComponent('marker-handler',{
+// play music when icon is tapped
+AFRAME.registerComponent('music-button',{
 init:function(){
 
-const video=document.querySelector("#wedding-video");
 const music=document.querySelector("#wedding-music");
 
-this.el.addEventListener("markerFound",()=>{
-
-video.play();
-
-music.currentTime = 0;
+this.el.addEventListener("click",()=>{
 music.play();
-
 });
 
-this.el.addEventListener("markerLost",()=>{
-
-video.pause();
-music.pause();
-
+this.el.addEventListener("touchstart",()=>{
+music.play();
 });
 
 }
@@ -66,13 +57,17 @@ playsinline
 webkit-playsinline>
 </video>
 
+<img
+id="music-icon"
+src="https://cdn-icons-png.flaticon.com/512/727/727245.png">
+
 </a-assets>
 
-<!-- Wedding Music -->
+<!-- wedding music -->
 <audio id="wedding-music" src="wedding-music.mp3"></audio>
 
 
-<a-marker preset="hiro" marker-handler>
+<a-marker preset="hiro">
 
 <!-- Invitation Title -->
 
@@ -107,6 +102,18 @@ scale="0.9 0.9 0.9">
 </a-text>
 
 
+<!-- Music Icon Button -->
+
+<a-image
+src="#music-icon"
+music-button
+position="1 1.5 0"
+rotation="-90 0 0"
+width="0.4"
+height="0.4">
+</a-image>
+
+
 <!-- Wedding Video -->
 
 <a-video
@@ -119,7 +126,6 @@ height="0.9">
 
 
 </a-marker>
-
 
 <a-entity camera></a-entity>
 
