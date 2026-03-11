@@ -3,6 +3,8 @@
 
 <head>
 
+<title>AR Wedding Invitation</title>
+
 <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
 
@@ -19,12 +21,92 @@ overflow:hidden;
 
 <a-scene embedded arjs>
 
+<a-assets>
+
+<video
+id="wedding-video"
+src="GIF_Video_Generation_Successful.mp4"
+loop
+muted
+playsinline
+webkit-playsinline>
+</video>
+
+</a-assets>
+
+
 <a-marker preset="hiro">
 
+<!-- Couple Names -->
+
+<a-text
+value="Prarthana & Rahul"
+position="0 1.2 0"
+align="center"
+color="yellow"
+scale="1 1 1">
+</a-text>
+
+
+<!-- Wedding Date -->
+
+<a-text
+value="25 December 2026"
+position="0 1 0"
+align="center"
+color="white"
+scale="0.8 0.8 0.8">
+</a-text>
+
+
+<!-- Wedding Video -->
+
+<a-video
+src="#wedding-video"
+position="0 0.4 0"
+rotation="-90 0 0"
+width="1.8"
+height="1">
+</a-video>
+
+
+<!-- Navigate Button -->
+
 <a-box
-position="0 0.5 0"
-material="color: red">
+position="-0.7 0.1 0"
+color="#d4af37"
+depth="0.1"
+height="0.3"
+width="0.5">
+
+<a-text
+value="Navigate"
+align="center"
+position="0 0 0.06"
+scale="0.4 0.4 0.4">
+</a-text>
+
 </a-box>
+
+
+<!-- RSVP Button -->
+
+<a-box
+position="0.7 0.1 0"
+color="#ff69b4"
+depth="0.1"
+height="0.3"
+width="0.5">
+
+<a-text
+value="RSVP"
+align="center"
+position="0 0 0.06"
+scale="0.4 0.4 0.4">
+</a-text>
+
+</a-box>
+
 
 </a-marker>
 
@@ -33,5 +115,4 @@ material="color: red">
 </a-scene>
 
 </body>
-
 </html>
