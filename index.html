@@ -15,29 +15,36 @@ overflow:hidden;
 font-family:Arial;
 }
 
-/* Blessing UI */
+/* UI Panel */
 
 #blessingPanel{
 
 position:absolute;
+
 bottom:30px;
 left:50%;
+
 transform:translateX(-50%);
 
-background:rgba(255,255,255,0.2);
+background:rgba(255,255,255,0.25);
+
 backdrop-filter:blur(10px);
 
-padding:18px;
+padding:15px;
 
 border-radius:18px;
 
-box-shadow:0 8px 25px rgba(0,0,0,0.35);
-
 display:flex;
+
 gap:10px;
 
 width:85%;
+
 max-width:340px;
+
+z-index:9999;   /* important */
+
+pointer-events:auto;
 
 }
 
@@ -49,15 +56,13 @@ flex:1;
 
 padding:10px;
 
-border-radius:12px;
+border-radius:10px;
 
 border:none;
 
 outline:none;
 
 font-size:14px;
-
-background:white;
 
 }
 
@@ -69,33 +74,13 @@ padding:10px 16px;
 
 border:none;
 
-border-radius:12px;
+border-radius:10px;
 
 background:linear-gradient(45deg,#FFD700,#FFC107);
 
 font-weight:bold;
 
 cursor:pointer;
-
-}
-
-/* Heart animation */
-
-.heart{
-
-position:absolute;
-
-font-size:22px;
-
-animation:floatHeart 2s ease-out forwards;
-
-}
-
-@keyframes floatHeart{
-
-0%{transform:translateY(0);opacity:1;}
-
-100%{transform:translateY(-120px);opacity:0;}
 
 }
 
@@ -107,7 +92,6 @@ animation:floatHeart 2s ease-out forwards;
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
 import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
 
-/* Firebase config */
 
 const firebaseConfig = {
 
@@ -122,16 +106,17 @@ databaseURL:"https://ar-invitation-card-default-rtdb.asia-southeast1.firebasedat
 
 };
 
+
 const app = initializeApp(firebaseConfig);
 
 const db = getDatabase(app);
 
 
-/* Send blessing */
+/* SEND BLESSING */
 
-window.sendBlessing=function(){
+window.sendBlessing = function(){
 
-const text=document.getElementById("blessingInput").value;
+const text = document.getElementById("blessingInput").value;
 
 if(text.trim()=="") return;
 
@@ -142,14 +127,12 @@ time:Date.now()
 
 });
 
-createHeart();
-
 document.getElementById("blessingInput").value="";
 
 };
 
 
-/* Listen for blessings */
+/* LISTEN FOR NEW BLESSINGS */
 
 onChildAdded(ref(db,"blessings"),(snapshot)=>{
 
@@ -160,7 +143,7 @@ createBlessing(data.message);
 });
 
 
-/* Create AR message box */
+/* CREATE AR MESSAGE */
 
 function createBlessing(text){
 
@@ -168,16 +151,14 @@ const marker=document.querySelector("#marker");
 
 const blessing=document.createElement("a-entity");
 
-/* position near marker */
-
 const x=(Math.random()*0.6)-0.3;
 
 const z=(Math.random()*0.6)-0.3;
 
-blessing.setAttribute("position",`${x} 0.4 ${z}`);
+blessing.setAttribute("position",`${x} 0.3 ${z}`);
 
 
-/* message box */
+/* Message Box */
 
 const box=document.createElement("a-plane");
 
@@ -185,21 +166,14 @@ box.setAttribute("width","1.8");
 
 box.setAttribute("height","0.6");
 
-box.setAttribute("color","#000000");
+box.setAttribute("color","#000");
 
 box.setAttribute("opacity","0.85");
 
 box.setAttribute("rotation","-90 0 0");
 
 
-box.setAttribute("animation",
-
-"property: position; to: 0 1.8 0; dur:5000; easing:easeOutQuad"
-
-);
-
-
-/* text */
+/* Text */
 
 const message=document.createElement("a-text");
 
@@ -213,7 +187,7 @@ message.setAttribute("scale","0.9 0.9 0.9");
 
 message.setAttribute("rotation","-90 0 0");
 
-message.setAttribute("position","0 0.03 0.02");
+message.setAttribute("position","0 0.02 0.02");
 
 
 box.appendChild(message);
@@ -223,7 +197,7 @@ blessing.appendChild(box);
 marker.appendChild(blessing);
 
 
-/* remove after 10 sec */
+/* Auto remove */
 
 setTimeout(()=>{
 
@@ -237,31 +211,6 @@ blessing.parentNode.removeChild(blessing);
 
 }
 
-
-/* heart animation */
-
-function createHeart(){
-
-const heart=document.createElement("div");
-
-heart.className="heart";
-
-heart.innerHTML="❤️";
-
-heart.style.left="50%";
-
-heart.style.bottom="120px";
-
-document.body.appendChild(heart);
-
-setTimeout(()=>{
-
-heart.remove();
-
-},2000);
-
-}
-
 </script>
 
 </head>
@@ -269,6 +218,8 @@ heart.remove();
 
 <body>
 
+
+<!-- Blessing UI -->
 
 <div id="blessingPanel">
 
@@ -283,13 +234,16 @@ Send
 </div>
 
 
+
 <a-scene
 
 embedded
 
 vr-mode-ui="enabled:false"
 
-arjs="sourceType:webcam;debugUIEnabled:false">
+arjs="sourceType:webcam;debugUIEnabled:false"
+
+style="z-index:0">
 
 <a-marker preset="hiro" id="marker">
 
@@ -314,5 +268,4 @@ opacity="0">
 </a-scene>
 
 </body>
-
 </html>
