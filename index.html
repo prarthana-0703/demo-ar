@@ -1,21 +1,21 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Elite AR Blessing Wall - Grid System</title>
+    <title>Elite AR Blessing Wall - Optimized</title>
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
 
     <style>
         body { margin: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; }
         #blessingPanel {
-            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
-            background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.3); padding: 15px;
-            border-radius: 20px; z-index: 10; display: flex; gap: 10px;
-            width: 85%; max-width: 450px;
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 10px; border-radius: 15px; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            z-index: 10; display: flex; gap: 8px; width: 90%; max-width: 400px;
         }
-        #blessingInput { flex-grow: 1; padding: 12px; border-radius: 12px; border: none; outline: none; }
-        #sendBtn { padding: 12px 20px; background: linear-gradient(45deg, #FFD700, #b8860b); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; }
+        #blessingInput { flex-grow: 1; padding: 10px; border-radius: 10px; border: none; outline: none; font-size: 14px; }
+        #sendBtn { padding: 10px 18px; background: linear-gradient(45deg, #FFD700, #b8860b); color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; }
     </style>
 
     <script type="module">
@@ -31,8 +31,6 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
-
-        // This counter is the key to preventing overlap
         let blessingCount = 0; 
 
         window.sendBlessing = function() {
@@ -52,30 +50,30 @@
             const marker = document.querySelector("#marker");
             const blessing = document.createElement("a-entity");
             
-            // GRID LOGIC: 2 Columns for maximum readability
+            // GRID LOGIC: 2 Columns
             const columns = 2;
             const col = index % columns;             
             const row = Math.floor(index / columns); 
             
-            // Spacing: X shifts left/right | Y stacks up | Z staggers back to prevent flicker
-            const xPos = (col === 0) ? -1.2 : 1.2;   
-            const yPos = 0.5 + (row * 0.7); 
-            const zPos = -1.0 - (index * 0.1); // Staggering depth
+            // X: Shifted closer (-0.9 to 0.9) | Y: Stack height reduced to 0.6 | Z: Small offset
+            const xPos = (col === 0) ? -0.9 : 0.9;   
+            const yPos = 0.4 + (row * 0.6); 
+            const zPos = -0.5 - (index * 0.02); 
             
             blessing.setAttribute("position", `${xPos} ${yPos} ${zPos}`);
 
-            // The Message Card
+            // Smaller, more compact Message Card
             const card = document.createElement("a-plane");
-            card.setAttribute("width", "2.0");
-            card.setAttribute("height", "0.6");
+            card.setAttribute("width", "1.6");
+            card.setAttribute("height", "0.5");
             card.setAttribute("color", "#ffffff");
             card.setAttribute("material", "opacity: 0.9; transparent: true; side: double");
             card.setAttribute("rotation", "-90 0 0");
 
-            // Gold Border 
+            // Thin Gold Border
             const border = document.createElement("a-plane");
-            border.setAttribute("width", "2.1");
-            border.setAttribute("height", "0.7");
+            border.setAttribute("width", "1.64");
+            border.setAttribute("height", "0.54");
             border.setAttribute("color", "#FFD700");
             border.setAttribute("position", "0 0 -0.01");
             card.appendChild(border);
@@ -84,9 +82,10 @@
             msgText.setAttribute("value", text);
             msgText.setAttribute("align", "center");
             msgText.setAttribute("color", "#333");
-            msgText.setAttribute("scale", "0.8 0.8 0.8");
+            // REDUCED SCALE and INCREASED WRAP-COUNT for small fit
+            msgText.setAttribute("scale", "0.5 0.5 0.5");
             msgText.setAttribute("position", "0 0 0.02");
-            msgText.setAttribute("wrap-count", "25"); // Prevents text from leaking out of the box
+            msgText.setAttribute("wrap-count", "28"); 
 
             card.appendChild(msgText);
             blessing.appendChild(card);
@@ -97,15 +96,15 @@
 
 <body>
     <div id="blessingPanel">
-        <input id="blessingInput" placeholder="Send a blessing forever ❤️">
+        <input id="blessingInput" placeholder="Write a blessing ❤️">
         <button id="sendBtn" onclick="sendBlessing()">Send</button>
     </div>
 
     <a-scene embedded vr-mode-ui="enabled: false" arjs="sourceType: webcam; debugUIEnabled: false;" cursor="rayOrigin: mouse">
         <a-marker preset="hiro" id="marker">
-            <a-plane position="0 0.01 0" rotation="-90 0 0" width="6" height="8" color="#000" opacity="0.2"></a-plane>
+            <a-plane position="0 0.01 0" rotation="-90 0 0" width="4" height="5" color="#000" opacity="0.3"></a-plane>
             
-            <a-text value="ETERNAL BLESSINGS" position="0 0.2 0" align="center" color="#FFD700" rotation="-90 0 0" scale="1.5 1.5 1.5"></a-text>
+            <a-text value="ETERNAL BLESSINGS" position="0 0.2 0" align="center" color="#FFD700" rotation="-90 0 0" scale="1 1 1"></a-text>
         </a-marker>
         <a-entity camera></a-entity>
     </a-scene>
