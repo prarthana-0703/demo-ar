@@ -1,271 +1,165 @@
 <!DOCTYPE html>
 <html>
 <head>
-
-<title>AR Blessing Wall</title>
-
-<script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
-
-<style>
-
-body{
-margin:0;
-overflow:hidden;
-font-family:Arial;
-}
-
-/* UI Panel */
-
-#blessingPanel{
-
-position:absolute;
-
-bottom:30px;
-left:50%;
-
-transform:translateX(-50%);
-
-background:rgba(255,255,255,0.25);
-
-backdrop-filter:blur(10px);
-
-padding:15px;
-
-border-radius:18px;
-
-display:flex;
-
-gap:10px;
-
-width:85%;
-
-max-width:340px;
-
-z-index:9999;   /* important */
-
-pointer-events:auto;
-
-}
-
-/* Input */
-
-#blessingInput{
-
-flex:1;
-
-padding:10px;
-
-border-radius:10px;
-
-border:none;
-
-outline:none;
-
-font-size:14px;
-
-}
-
-/* Button */
-
-#sendBtn{
-
-padding:10px 16px;
-
-border:none;
-
-border-radius:10px;
-
-background:linear-gradient(45deg,#FFD700,#FFC107);
-
-font-weight:bold;
-
-cursor:pointer;
-
-}
-
-</style>
-
-
-<script type="module">
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
-
-
-const firebaseConfig = {
-
-apiKey: "AIzaSyDJ17F9vJKFy329miOBgRpeR8WxV7wT_8g",
-authDomain: "ar-invitation-card.firebaseapp.com",
-projectId: "ar-invitation-card",
-storageBucket: "ar-invitation-card.firebasestorage.app",
-messagingSenderId: "320155677687",
-appId: "1:320155677687:web:53df247453350de0b834f2",
-measurementId: "G-RY3R2ZDPJ0",
-databaseURL:"https://ar-invitation-card-default-rtdb.asia-southeast1.firebasedatabase.app"
-
-};
-
-
-const app = initializeApp(firebaseConfig);
-
-const db = getDatabase(app);
-
-
-/* SEND BLESSING */
-
-window.sendBlessing = function(){
-
-const text = document.getElementById("blessingInput").value;
-
-if(text.trim()=="") return;
-
-push(ref(db,"blessings"),{
-
-message:text,
-time:Date.now()
-
-});
-
-document.getElementById("blessingInput").value="";
-
-};
-
-
-/* LISTEN FOR NEW BLESSINGS */
-
-onChildAdded(ref(db,"blessings"),(snapshot)=>{
-
-const data=snapshot.val();
-
-createBlessing(data.message);
-
-});
-
-
-/* CREATE AR MESSAGE */
-
-function createBlessing(text){
-
-const marker=document.querySelector("#marker");
-
-const blessing=document.createElement("a-entity");
-
-const x=(Math.random()*0.6)-0.3;
-
-const z=(Math.random()*0.6)-0.3;
-
-blessing.setAttribute("position",`${x} 0.3 ${z}`);
-
-
-/* Message Box */
-
-const box=document.createElement("a-plane");
-
-box.setAttribute("width","1.8");
-
-box.setAttribute("height","0.6");
-
-box.setAttribute("color","#000");
-
-box.setAttribute("opacity","0.85");
-
-box.setAttribute("rotation","-90 0 0");
-
-
-/* Text */
-
-const message=document.createElement("a-text");
-
-message.setAttribute("value",text);
-
-message.setAttribute("align","center");
-
-message.setAttribute("color","#FFD700");
-
-message.setAttribute("scale","0.9 0.9 0.9");
-
-message.setAttribute("rotation","-90 0 0");
-
-message.setAttribute("position","0 0.02 0.02");
-
-
-box.appendChild(message);
-
-blessing.appendChild(box);
-
-marker.appendChild(blessing);
-
-
-/* Auto remove */
-
-setTimeout(()=>{
-
-if(blessing.parentNode){
-
-blessing.parentNode.removeChild(blessing);
-
-}
-
-},10000);
-
-}
-
-</script>
-
+    <title>Elite AR Wedding Portal - M.Tech Edition</title>
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
+
+    <style>
+        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; }
+
+        /* Glassmorphism UI - Higher Attraction & Stimulation (UEQ-S) */
+        #blessingPanel {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 15px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            z-index: 10;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            width: 85%;
+            max-width: 450px;
+        }
+
+        #blessingInput {
+            flex-grow: 1;
+            padding: 12px;
+            border-radius: 12px;
+            border: none;
+            background: rgba(255, 255, 255, 0.9);
+            outline: none;
+            font-size: 14px;
+        }
+
+        #sendBtn {
+            padding: 12px 20px;
+            background: linear-gradient(45deg, #FFD700, #b8860b);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+
+        #sendBtn:active { transform: scale(0.95); }
+    </style>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+        import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
+
+        // Firebase Configuration - Essential for Empirical Data Collection
+        const firebaseConfig = {
+            apiKey: "AIzaSyDJ17F9vJKFy329miOBgRpeR8WxV7wT_8g",
+            authDomain: "ar-invitation-card.firebaseapp.com",
+            projectId: "ar-invitation-card",
+            databaseURL: "https://ar-invitation-card-default-rtdb.asia-southeast1.firebasedatabase.app"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // Global function for the HTML button
+        window.sendBlessing = function() {
+            const text = document.getElementById("blessingInput").value;
+            if(text.trim() == "") return;
+
+            push(ref(db, "blessings"), {
+                message: text,
+                time: Date.now()
+            });
+
+            document.getElementById("blessingInput").value = "";
+        };
+
+        // Listening for new blessings - Real-time Participation Feature
+        onChildAdded(ref(db, "blessings"), (snapshot) => {
+            const data = snapshot.val();
+            spawnARMessage(data.message);
+        });
+
+        function spawnARMessage(text) {
+            const marker = document.querySelector("#marker");
+            const blessing = document.createElement("a-entity");
+            
+            // Randomized spawn logic for dynamic multimedia engagement
+            const x = (Math.random() * 2) - 1;
+            const z = (Math.random() * 2) - 1.5;
+            blessing.setAttribute("position", `${x} 0.5 ${z}`);
+
+            // The Message Card
+            const card = document.createElement("a-plane");
+            card.setAttribute("width", "1.6");
+            card.setAttribute("height", "0.5");
+            card.setAttribute("color", "#ffffff");
+            card.setAttribute("material", "opacity: 0.9; transparent: true");
+            card.setAttribute("rotation", "-90 0 0");
+
+            // Animation: Rise effect - Improving Emotional Connection
+            card.setAttribute("animation", "property: position; to: 0 1.8 0; dur: 6000; easing: easeOutQuad");
+
+            const msgText = document.createElement("a-text");
+            msgText.setAttribute("value", text);
+            msgText.setAttribute("align", "center");
+            msgText.setAttribute("color", "#b8860b");
+            msgText.setAttribute("scale", "0.7 0.7 0.7");
+            msgText.setAttribute("position", "0 0 0.02");
+
+            card.appendChild(msgText);
+            blessing.appendChild(card);
+            marker.appendChild(blessing);
+
+            // Auto-cleanup - MDLC Testing phase requirement
+            setTimeout(() => {
+                if(blessing.parentNode) blessing.parentNode.removeChild(blessing);
+            }, 10000);
+        }
+    </script>
 </head>
-
 
 <body>
 
+    <div id="blessingPanel">
+        <input id="blessingInput" placeholder="Send a blessing ❤️">
+        <button id="sendBtn" onclick="sendBlessing()">Send</button>
+    </div>
 
-<!-- Blessing UI -->
+    <a-scene embedded vr-mode-ui="enabled: false" arjs="sourceType: webcam; debugUIEnabled: false;" cursor="rayOrigin: mouse">
 
-<div id="blessingPanel">
+        <a-assets>
+            <video id="wedding-video" src="GIF_Video_Generation_Successful.mp4" loop muted playsinline crossorigin="anonymous"></video>
+            <img id="music-icon" src="https://cdn-icons-png.flaticon.com/512/727/727245.png">
+        </a-assets>
 
-<input id="blessingInput" placeholder="Send a blessing ❤️">
+        <audio id="wedding-music" src="wedding-music.mp3" preload="auto"></audio>
 
-<button id="sendBtn" onclick="sendBlessing()">
+        <a-marker preset="hiro" id="marker">
+            
+            <a-plane position="0 0.01 0" rotation="-90 0 0" width="2.8" height="3.2" color="#000" opacity="0.4"></a-plane>
 
-Send
+            <a-text value="Prarthana & Rahul" position="0 0.2 -1.2" align="center" color="#FFD700" scale="1.4 1.4 1.4" rotation="-90 0 0"></a-text>
 
-</button>
+            <a-video src="#wedding-video" position="0 0.1 0" rotation="-90 0 0" width="2.2" height="1.3"></a-video>
 
-</div>
+            <a-image src="#music-icon" class="clickable" position="1.1 0.2 0.8" rotation="-90 0 0" width="0.4" height="0.4"
+                     onclick="const m = document.querySelector('#wedding-music'); m.paused ? m.play() : m.pause();">
+            </a-image>
 
+            <a-text value="25 December 2026" position="0 0.1 1.2" align="center" color="white" scale="0.9 0.9 0.9" rotation="-90 0 0"></a-text>
 
+        </a-marker>
 
-<a-scene
-
-embedded
-
-vr-mode-ui="enabled:false"
-
-arjs="sourceType:webcam;debugUIEnabled:false"
-
-style="z-index:0">
-
-<a-marker preset="hiro" id="marker">
-
-<a-plane
-
-position="0 0 0"
-
-rotation="-90 0 0"
-
-width="2"
-
-height="2"
-
-opacity="0">
-
-</a-plane>
-
-</a-marker>
-
-<a-entity camera></a-entity>
-
-</a-scene>
+        <a-entity camera></a-entity>
+    </a-scene>
 
 </body>
 </html>
