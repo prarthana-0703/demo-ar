@@ -15,58 +15,88 @@ overflow:hidden;
 font-family:Arial;
 }
 
-/* Blessing Panel */
+/* Blessing UI */
 
 #blessingPanel{
+
 position:absolute;
 bottom:30px;
 left:50%;
 transform:translateX(-50%);
+
 background:rgba(255,255,255,0.2);
 backdrop-filter:blur(10px);
+
 padding:18px;
+
 border-radius:18px;
+
 box-shadow:0 8px 25px rgba(0,0,0,0.35);
+
 display:flex;
-flex-direction:column;
 gap:10px;
+
 width:85%;
-max-width:320px;
+max-width:340px;
+
 }
 
 /* Input */
 
 #blessingInput{
+
+flex:1;
+
 padding:10px;
+
 border-radius:12px;
+
 border:none;
+
 outline:none;
+
 font-size:14px;
+
 background:white;
+
 }
 
 /* Button */
 
 #sendBtn{
-padding:10px;
+
+padding:10px 16px;
+
 border:none;
+
 border-radius:12px;
+
 background:linear-gradient(45deg,#FFD700,#FFC107);
+
 font-weight:bold;
+
 cursor:pointer;
+
 }
 
-/* Floating heart */
+/* Heart animation */
 
 .heart{
+
 position:absolute;
+
 font-size:22px;
+
 animation:floatHeart 2s ease-out forwards;
+
 }
 
 @keyframes floatHeart{
+
 0%{transform:translateY(0);opacity:1;}
+
 100%{transform:translateY(-120px);opacity:0;}
+
 }
 
 </style>
@@ -77,6 +107,8 @@ animation:floatHeart 2s ease-out forwards;
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
 import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
 
+/* Firebase config */
+
 const firebaseConfig = {
 
 apiKey: "AIzaSyDJ17F9vJKFy329miOBgRpeR8WxV7wT_8g",
@@ -86,11 +118,12 @@ storageBucket: "ar-invitation-card.firebasestorage.app",
 messagingSenderId: "320155677687",
 appId: "1:320155677687:web:53df247453350de0b834f2",
 measurementId: "G-RY3R2ZDPJ0",
-databaseURL: "https://ar-invitation-card-default-rtdb.asia-southeast1.firebasedatabase.app"
+databaseURL:"https://ar-invitation-card-default-rtdb.asia-southeast1.firebasedatabase.app"
 
 };
 
 const app = initializeApp(firebaseConfig);
+
 const db = getDatabase(app);
 
 
@@ -103,21 +136,25 @@ const text=document.getElementById("blessingInput").value;
 if(text.trim()=="") return;
 
 push(ref(db,"blessings"),{
+
 message:text,
 time:Date.now()
+
 });
 
 createHeart();
 
 document.getElementById("blessingInput").value="";
+
 };
 
 
-/* Listen for new blessings */
+/* Listen for blessings */
 
 onChildAdded(ref(db,"blessings"),(snapshot)=>{
 
 const data=snapshot.val();
+
 createBlessing(data.message);
 
 });
@@ -131,41 +168,71 @@ const marker=document.querySelector("#marker");
 
 const blessing=document.createElement("a-entity");
 
-const x=(Math.random()*2)-1;
-const z=(Math.random()*2)-1.5;
+/* position near marker */
 
-blessing.setAttribute("position",`${x} 0.3 ${z}`);
+const x=(Math.random()*0.6)-0.3;
+
+const z=(Math.random()*0.6)-0.3;
+
+blessing.setAttribute("position",`${x} 0.4 ${z}`);
+
+
+/* message box */
 
 const box=document.createElement("a-plane");
 
-box.setAttribute("width","1.6");
-box.setAttribute("height","0.5");
-box.setAttribute("color","#ffffff");
-box.setAttribute("opacity","0.95");
+box.setAttribute("width","1.8");
+
+box.setAttribute("height","0.6");
+
+box.setAttribute("color","#000000");
+
+box.setAttribute("opacity","0.85");
+
 box.setAttribute("rotation","-90 0 0");
 
+
 box.setAttribute("animation",
-"property: position; to: 0 1.6 0; dur:5000; easing:easeOutQuad");
+
+"property: position; to: 0 1.8 0; dur:5000; easing:easeOutQuad"
+
+);
+
+
+/* text */
 
 const message=document.createElement("a-text");
 
 message.setAttribute("value",text);
+
 message.setAttribute("align","center");
-message.setAttribute("color","#000");
-message.setAttribute("scale","0.7 0.7 0.7");
+
+message.setAttribute("color","#FFD700");
+
+message.setAttribute("scale","0.9 0.9 0.9");
+
 message.setAttribute("rotation","-90 0 0");
-message.setAttribute("position","0 0.02 0.01");
+
+message.setAttribute("position","0 0.03 0.02");
+
 
 box.appendChild(message);
+
 blessing.appendChild(box);
+
 marker.appendChild(blessing);
+
 
 /* remove after 10 sec */
 
 setTimeout(()=>{
+
 if(blessing.parentNode){
+
 blessing.parentNode.removeChild(blessing);
+
 }
+
 },10000);
 
 }
@@ -176,15 +243,21 @@ blessing.parentNode.removeChild(blessing);
 function createHeart(){
 
 const heart=document.createElement("div");
+
 heart.className="heart";
+
 heart.innerHTML="❤️";
+
 heart.style.left="50%";
+
 heart.style.bottom="120px";
 
 document.body.appendChild(heart);
 
 setTimeout(()=>{
+
 heart.remove();
+
 },2000);
 
 }
@@ -193,35 +266,45 @@ heart.remove();
 
 </head>
 
+
 <body>
 
 
 <div id="blessingPanel">
 
-<input id="blessingInput"
-placeholder="Write your blessing ✨">
+<input id="blessingInput" placeholder="Send a blessing ❤️">
 
 <button id="sendBtn" onclick="sendBlessing()">
-Send Blessing
+
+Send
+
 </button>
 
 </div>
 
 
 <a-scene
+
 embedded
+
 vr-mode-ui="enabled:false"
+
 arjs="sourceType:webcam;debugUIEnabled:false">
 
 <a-marker preset="hiro" id="marker">
 
 <a-plane
-position="0 0.05 0"
+
+position="0 0 0"
+
 rotation="-90 0 0"
-width="2.5"
-height="2.5"
-color="#000"
-opacity="0.5">
+
+width="2"
+
+height="2"
+
+opacity="0">
+
 </a-plane>
 
 </a-marker>
@@ -231,4 +314,5 @@ opacity="0.5">
 </a-scene>
 
 </body>
+
 </html>
