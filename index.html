@@ -30,25 +30,28 @@ z-index:10;
 
 #blessingInput{
 padding:8px;
-width:200px;
+width:220px;
 border-radius:6px;
 border:1px solid #ccc;
 }
 
 #sendBtn{
-padding:8px;
+padding:8px 14px;
 background:gold;
 border:none;
 border-radius:6px;
 cursor:pointer;
+font-weight:bold;
 }
 
 </style>
+
 
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
 import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
+
 
 /* Firebase configuration */
 
@@ -69,7 +72,7 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 
-/* Send blessing to Firebase */
+/* Send blessing */
 
 window.sendBlessing = function(){
 
@@ -100,7 +103,7 @@ createBlessing(data.message);
 });
 
 
-/* Create AR blessing object */
+/* Create blessing box */
 
 function createBlessing(text){
 
@@ -115,36 +118,47 @@ const z = (Math.random()*2)-1.5;
 
 blessing.setAttribute("position",`${x} 0.3 ${z}`);
 
-/* heart */
 
-const heart = document.createElement("a-sphere");
+/* message box */
 
-heart.setAttribute("radius","0.1");
-heart.setAttribute("color","#ff4d6d");
+const box = document.createElement("a-plane");
 
-heart.setAttribute("animation",
+box.setAttribute("width","1.6");
+box.setAttribute("height","0.5");
+box.setAttribute("color","#ffffff");
+box.setAttribute("opacity","0.95");
+box.setAttribute("rotation","-90 0 0");
 
-"property: position; to: 0 1.6 0; dur:4000; easing:easeOutQuad"
+
+/* animation */
+
+box.setAttribute("animation",
+
+"property: position; to: 0 1.6 0; dur:5000; easing:easeOutQuad"
 
 );
 
-/* blessing text */
+
+/* message text */
 
 const message = document.createElement("a-text");
 
 message.setAttribute("value",text);
 message.setAttribute("align","center");
-message.setAttribute("color","#FFD700");
-message.setAttribute("rotation","-90 0 0");
+message.setAttribute("color","#000000");
 message.setAttribute("scale","0.7 0.7 0.7");
-message.setAttribute("position","0 0.25 0");
+message.setAttribute("rotation","-90 0 0");
+message.setAttribute("position","0 0.02 0.01");
 
-blessing.appendChild(heart);
-blessing.appendChild(message);
+
+box.appendChild(message);
+
+blessing.appendChild(box);
 
 marker.appendChild(blessing);
 
-/* remove after 10 sec */
+
+/* auto remove */
 
 setTimeout(()=>{
 
@@ -162,7 +176,9 @@ blessing.parentNode.removeChild(blessing);
 
 </head>
 
+
 <body>
+
 
 <div id="blessingPanel">
 
@@ -177,6 +193,7 @@ Send Blessing
 </button>
 
 </div>
+
 
 
 <a-scene
@@ -205,6 +222,6 @@ opacity="0.5">
 
 </a-scene>
 
-</body>
 
+</body>
 </html>
