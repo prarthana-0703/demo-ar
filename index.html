@@ -15,13 +15,37 @@ overflow:hidden;
 }
 </style>
 
+<script>
+
+// play music when marker appears
+AFRAME.registerComponent('marker-handler',{
+init:function(){
+
+const video=document.querySelector("#wedding-video");
+const music=document.querySelector("#wedding-music");
+
+this.el.addEventListener("markerFound",()=>{
+video.play();
+music.play();
+});
+
+this.el.addEventListener("markerLost",()=>{
+video.pause();
+music.pause();
+});
+
+}
+});
+
+</script>
+
 </head>
 
 <body>
 
 <a-scene
 embedded
-vr-mode-ui="enabled: false"
+vr-mode-ui="enabled:false"
 arjs="sourceType: webcam; debugUIEnabled: false;">
 
 <a-assets>
@@ -37,13 +61,16 @@ webkit-playsinline>
 
 </a-assets>
 
+<!-- Wedding Music -->
+<audio id="wedding-music" src="wedding-music.mp3" preload="auto"></audio>
 
-<a-marker preset="hiro">
 
-<!-- Couple Names -->
+<a-marker preset="hiro" marker-handler>
+
+<!-- Invitation Title -->
 
 <a-text
-value="Prarthana & Rahul"
+value="You're Invited!"
 position="0 1.2 0"
 align="center"
 color="yellow"
@@ -51,11 +78,22 @@ scale="1 1 1">
 </a-text>
 
 
+<!-- Couple Names -->
+
+<a-text
+value="Prarthana & Rahul"
+position="0 1.0 0"
+align="center"
+color="#FFD700"
+scale="1.2 1.2 1.2">
+</a-text>
+
+
 <!-- Wedding Date -->
 
 <a-text
 value="25 December 2026"
-position="0 1 0"
+position="0 0.8 0"
 align="center"
 color="white"
 scale="0.8 0.8 0.8">
@@ -66,7 +104,7 @@ scale="0.8 0.8 0.8">
 
 <a-video
 src="#wedding-video"
-position="0 0.4 0"
+position="0 0.3 0"
 rotation="-90 0 0"
 width="1.6"
 height="0.9">
