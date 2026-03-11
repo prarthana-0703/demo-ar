@@ -1,14 +1,12 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html>
 <head>
-    <title>AR Eternal Blessing Wall</title>
+    <title>Elite AR Blessing Wall - Organized</title>
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
+    <script src="https://cdn.gh.io/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
 
     <style>
         body { margin: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; }
-        
-        /* Glassmorphism UI for high attraction [cite: 130, 140] */
         #blessingPanel {
             position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
             background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(15px);
@@ -24,7 +22,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
         import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
 
-        // Firebase ensures information retention and empirical validation [cite: 27, 32]
         const firebaseConfig = {
             apiKey: "AIzaSyDJ17F9vJKFy329miOBgRpeR8WxV7wT_8g",
             authDomain: "ar-invitation-card.firebaseapp.com",
@@ -35,30 +32,36 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
+        let blessingCount = 0; // Tracks position for the Grid Algorithm
+
         window.sendBlessing = function() {
             const text = document.getElementById("blessingInput").value;
             if(text.trim() == "") return;
-            // Push data to cloud for persistent guest interaction [cite: 31, 35]
             push(ref(db, "blessings"), { message: text, time: Date.now() });
             document.getElementById("blessingInput").value = "";
         };
 
         onChildAdded(ref(db, "blessings"), (snapshot) => {
             const data = snapshot.val();
-            createPermanentBlessing(data.message);
+            createGridBlessing(data.message, blessingCount);
+            blessingCount++;
         });
 
-        function createPermanentBlessing(text) {
+        function createGridBlessing(text, index) {
             const marker = document.querySelector("#marker");
             const blessing = document.createElement("a-entity");
             
-            // Randomly scatter messages across the 3D space [cite: 46]
-            const x = (Math.random() * 3) - 1.5;
-            const z = (Math.random() * 3) - 1.5;
-            const y = 0.5 + (Math.random() * 1.5);
-            blessing.setAttribute("position", `${x} ${y} ${z}`);
+            // GRID ALGORITHM: 3 Columns, Infinite Rows
+            const col = index % 3;             // Current column (0, 1, 2)
+            const row = Math.floor(index / 3); // Current row (0, 1, 2...)
+            
+            // X: Left, Center, Right | Y: Stack upward | Z: Constant depth
+            const xPos = (col - 1) * 1.8;   
+            const yPos = 0.5 + (row * 0.7); 
+            
+            blessing.setAttribute("position", `${xPos} ${yPos} -1.5`);
 
-            // Message Card
+            // Message Card with Gold Border
             const card = document.createElement("a-plane");
             card.setAttribute("width", "1.6");
             card.setAttribute("height", "0.5");
@@ -66,17 +69,22 @@
             card.setAttribute("material", "opacity: 0.9; transparent: true; side: double");
             card.setAttribute("rotation", "-90 0 0");
 
+            const border = document.createElement("a-plane");
+            border.setAttribute("width", "1.65");
+            border.setAttribute("height", "0.55");
+            border.setAttribute("color", "#FFD700");
+            border.setAttribute("position", "0 0 -0.01");
+            card.appendChild(border);
+
             const msgText = document.createElement("a-text");
             msgText.setAttribute("value", text);
             msgText.setAttribute("align", "center");
-            msgText.setAttribute("color", "#b8860b");
-            msgText.setAttribute("scale", "0.7 0.7 0.7");
+            msgText.setAttribute("color", "#444");
+            msgText.setAttribute("scale", "0.6 0.6 0.6");
             msgText.setAttribute("position", "0 0 0.02");
 
             card.appendChild(msgText);
             blessing.appendChild(card);
-            
-            // NOTE: No setTimeout or removeChild here to keep messages forever [cite: 178]
             marker.appendChild(blessing);
         }
     </script>
@@ -84,14 +92,13 @@
 
 <body>
     <div id="blessingPanel">
-        <input id="blessingInput" placeholder="Write your blessing ❤️">
+        <input id="blessingInput" placeholder="Send a blessing forever ❤️">
         <button id="sendBtn" onclick="sendBlessing()">Send</button>
     </div>
 
     <a-scene embedded vr-mode-ui="enabled: false" arjs="sourceType: webcam; debugUIEnabled: false;" cursor="rayOrigin: mouse">
         <a-marker preset="hiro" id="marker">
-            <a-plane position="0 0.01 0" rotation="-90 0 0" width="4" height="4" color="#000" opacity="0.3"></a-plane>
-            
+            <a-plane position="0 0.01 0" rotation="-90 0 0" width="6" height="6" color="#000" opacity="0.2"></a-plane>
             <a-text value="ETERNAL BLESSINGS" position="0 0.2 0" align="center" color="#FFD700" rotation="-90 0 0"></a-text>
         </a-marker>
         <a-entity camera></a-entity>
