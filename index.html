@@ -7,13 +7,53 @@
 <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
 
 <style>
+
 body{
 margin:0;
 overflow:hidden;
+font-family:Arial;
 }
+
+/* Blessing input panel */
+
+#blessingPanel{
+
+position:absolute;
+bottom:20px;
+left:50%;
+transform:translateX(-50%);
+background:white;
+padding:10px;
+border-radius:10px;
+box-shadow:0 4px 10px rgba(0,0,0,0.3);
+z-index:10;
+
+}
+
+#blessingInput{
+
+padding:8px;
+width:200px;
+border-radius:6px;
+border:1px solid #ccc;
+
+}
+
+#sendBtn{
+
+padding:8px;
+background:gold;
+border:none;
+border-radius:6px;
+cursor:pointer;
+
+}
+
 </style>
 
 <script>
+
+/* Music button */
 
 AFRAME.registerComponent('music-button',{
 init:function(){
@@ -34,11 +74,86 @@ music.pause();
 }
 });
 
+
+/* Blessing system */
+
+function spawnBlessing(){
+
+const text=document.getElementById("blessingInput").value;
+
+if(text.trim()==""){
+alert("Please write a blessing ❤️");
+return;
+}
+
+const marker=document.querySelector("#marker");
+
+const blessing=document.createElement("a-entity");
+
+const x=(Math.random()*2)-1;
+const z=(Math.random()*2)-1;
+
+blessing.setAttribute("position",x+" 0.4 "+z);
+
+
+/* heart */
+
+const heart=document.createElement("a-sphere");
+
+heart.setAttribute("radius","0.12");
+heart.setAttribute("color","#ff4d6d");
+
+heart.setAttribute("animation",
+"property: position; to: "+x+" 1.8 "+z+"; dur:4000; easing:linear");
+
+
+/* message */
+
+const message=document.createElement("a-text");
+
+message.setAttribute("value",text);
+message.setAttribute("align","center");
+message.setAttribute("color","#FFD700");
+message.setAttribute("scale","0.6 0.6 0.6");
+message.setAttribute("rotation","-90 0 0");
+message.setAttribute("position","0 0.25 0");
+
+
+blessing.appendChild(heart);
+blessing.appendChild(message);
+
+marker.appendChild(blessing);
+
+
+/* clear input */
+
+document.getElementById("blessingInput").value="";
+
+}
+
 </script>
 
 </head>
 
 <body>
+
+
+<!-- Blessing UI -->
+
+<div id="blessingPanel">
+
+<input id="blessingInput"
+placeholder="Send your blessing ❤️">
+
+<button id="sendBtn"
+onclick="spawnBlessing()">
+
+Send Blessing
+
+</button>
+
+</div>
+
 
 <a-scene
 embedded
@@ -46,6 +161,7 @@ vr-mode-ui="enabled:false"
 arjs="sourceType:webcam;debugUIEnabled:false"
 cursor="rayOrigin: mouse"
 raycaster="objects: .clickable">
+
 
 <a-assets>
 
@@ -58,16 +174,19 @@ playsinline
 webkit-playsinline>
 </video>
 
+
 <img
 id="music-icon"
 src="https://cdn-icons-png.flaticon.com/512/727/727245.png">
 
 </a-assets>
 
+
 <audio id="wedding-music" src="wedding-music.mp3"></audio>
 
 
-<a-marker preset="hiro">
+<a-marker preset="hiro" id="marker">
+
 
 <!-- Background card -->
 
@@ -93,7 +212,7 @@ material="color:#FFD700;wireframe:true">
 </a-plane>
 
 
-<!-- 3D Couple Name (no movement) -->
+<!-- Couple name -->
 
 <a-text
 value="Prarthana & Rahul"
@@ -150,7 +269,7 @@ rotation="-90 0 0">
 </a-text>
 
 
-<!-- 3D Date -->
+<!-- Date -->
 
 <a-text
 value="25 December 2026"
