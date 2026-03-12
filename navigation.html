@@ -9,13 +9,11 @@
         body { margin: 0; overflow: hidden; background: black; font-family: 'Segoe UI', sans-serif; }
         #camera-feed { position: fixed; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; }
         #ar-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
-        #hud { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); padding: 12px 25px; border-radius: 30px; border: 2px solid #00ff00; color: white; font-size: 16px; z-index: 10; text-align: center; min-width: 230px; transition: all 0.5s ease; }
+        #hud { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); padding: 12px 25px; border-radius: 30px; border: 2px solid #00ff00; color: white; font-size: 16px; z-index: 10; text-align: center; min-width: 230px; transition: all 0.4s ease; box-shadow: 0 0 15px rgba(0,255,0,0.2); }
         #distance { position: fixed; bottom: 190px; left: 50%; transform: translateX(-50%); color: #00ff00; font-size: 30px; font-weight: bold; text-shadow: 2px 2px 8px rgba(0,0,0,0.8); z-index: 10; }
-        #mini-map { position: fixed; bottom: 20px; right: 20px; width: 160px; height: 160px; border-radius: 50%; border: 3px solid white; z-index: 10; overflow: hidden; background: black; box-shadow: 0 0 15px rgba(0,0,0,0.5); }
-        #start-btn { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 20px 40px; font-size: 20px; background: #00ff00; border: none; border-radius: 50px; font-weight: bold; z-index: 100; cursor: pointer; box-shadow: 0 0 20px rgba(0,255,0,0.4); }
-        
-        /* Arrival Class */
-        .arrived { border-color: #ffd700 !important; color: #ffd700 !important; box-shadow: 0 0 20px #ffd700; }
+        #mini-map { position: fixed; bottom: 20px; right: 20px; width: 160px; height: 160px; border-radius: 50%; border: 3px solid white; z-index: 10; overflow: hidden; background: black; }
+        #start-btn { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 20px 40px; font-size: 20px; background: #00ff00; border: none; border-radius: 50px; font-weight: bold; z-index: 100; cursor: pointer; }
+        .arrived-ui { border-color: #ffd700 !important; color: #ffd700 !important; box-shadow: 0 0 25px #ffd700 !important; }
     </style>
 </head>
 <body>
@@ -24,7 +22,7 @@
 <canvas id="ar-canvas"></canvas>
 
 <div id="hud">Target: SJT</div>
-<div id="distance">Waiting for GPS...</div>
+<div id="distance">Locating GPS...</div>
 <div id="mini-map"></div>
 
 <button id="start-btn" onclick="startAR()">START NAVIGATION</button>
@@ -36,44 +34,30 @@
 /* --- CONFIG --- */
 const MAPBOX_TOKEN = "pk.eyJ1IjoiaGVtYW50aDg1MDMiLCJhIjoiY21rNzV5c2w2MHlqeTNncjI5bjkyeWJwaiJ9.NnunzAB_24Ntn83H5hRcyQ"; 
 const DESTINATION = [79.163884, 12.971034]; // SJT [lng, lat]
+const DEST_NAME = "SJT"; 
 
 let scene, camera, renderer, arrowMesh;
 let map, userMarker;
+let targetBearing = 0, deviceHeading = 0, smoothHeading = 0, lastRawHeading = 0;
+let isRunning = false, hasArrived = false;
 
-let targetBearing = 0;
-let deviceHeading = 0;
-let smoothHeading = 0;
-let lastRawHeading = 0;
-let isRunning = false;
-let hasArrived = false;
-
-/* --- START AR --- */
 async function startAR() {
     if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function") {
         try {
             const response = await DeviceOrientationEvent.requestPermission();
-            if (response !== "granted") {
-                alert("Compass permission denied.");
-                return;
-            }
+            if (response !== "granted") return alert("Compass permission denied.");
         } catch (e) { console.error(e); }
     }
-
     document.getElementById("start-btn").style.display = "none";
-
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
         document.getElementById("camera-feed").srcObject = stream;
-    } catch (e) {
-        alert("Camera access failed. Ensure you are using HTTPS.");
-    }
+    } catch (e) { alert("Camera failed. Use HTTPS."); }
 
     initThree();
     initMap();
-
-    navigator.geolocation.watchPosition(handleGPS, (err) => console.error(err), { enableHighAccuracy: true });
+    navigator.geolocation.watchPosition(handleGPS, null, { enableHighAccuracy: true });
     window.addEventListener("deviceorientation", handleOrientation, true);
-
     isRunning = true;
     animate();
 }
@@ -83,37 +67,19 @@ function initThree() {
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     renderer = new THREE.WebGLRenderer({ canvas: document.getElementById("ar-canvas"), alpha: true, antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
 
     const shape = new THREE.Shape();
-    shape.moveTo(0, 0.8);
-    shape.lineTo(0.4, 0);
-    shape.lineTo(0.15, 0);
-    shape.lineTo(0.15, -0.6);
-    shape.lineTo(-0.15, -0.6);
-    shape.lineTo(-0.15, 0);
-    shape.lineTo(-0.4, 0);
-    shape.closePath();
+    shape.moveTo(0, 0.8); shape.lineTo(0.4, 0); shape.lineTo(0.15, 0); shape.lineTo(0.15, -0.6);
+    shape.lineTo(-0.15, -0.6); shape.lineTo(-0.15, 0); shape.lineTo(-0.4, 0); shape.closePath();
 
-    const geometry = new THREE.ExtrudeGeometry(shape, { depth: 0.15, bevelEnabled: false });
-    const material = new THREE.MeshPhongMaterial({ color: 0x00ff00, emissive: 0x003300 });
-    
-    arrowMesh = new THREE.Mesh(geometry, material);
+    arrowMesh = new THREE.Mesh(
+        new THREE.ExtrudeGeometry(shape, { depth: 0.15, bevelEnabled: false }),
+        new THREE.MeshPhongMaterial({ color: 0x00ff00, emissive: 0x003300 })
+    );
     arrowMesh.position.set(0, -1.2, -5);
     arrowMesh.rotation.x = -Math.PI / 2;
-    arrowMesh.scale.set(1.5, 1.5, 1.5);
     scene.add(arrowMesh);
-
     scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-    const light = new THREE.PointLight(0xffffff, 1);
-    light.position.set(5, 5, 5);
-    scene.add(light);
-
-    window.addEventListener("resize", () => {
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-    });
 }
 
 function initMap() {
@@ -122,13 +88,9 @@ function initMap() {
         container: "mini-map",
         style: "mapbox://styles/mapbox/navigation-night-v1",
         center: DESTINATION,
-        zoom: 16,
-        pitch: 45,
-        interactive: false
+        zoom: 16, pitch: 45, interactive: false
     });
-
     map.on('load', () => {
-        map.resize();
         new mapboxgl.Marker({ color: "#ff0000" }).setLngLat(DESTINATION).addTo(map);
         userMarker = new mapboxgl.Marker({ color: "#00ff00" }).setLngLat([0,0]).addTo(map);
     });
@@ -140,84 +102,60 @@ async function handleGPS(pos) {
     const dist = getDistance(lat, lng, DESTINATION[1], DESTINATION[0]);
 
     if (userMarker) userMarker.setLngLat([lng, lat]);
-    
-    if (map) {
-        map.easeTo({ center: [lng, lat], bearing: deviceHeading, duration: 1000 });
-    }
+    if (map) map.easeTo({ center: [lng, lat], bearing: deviceHeading, duration: 1000 });
 
-    const distDisplay = Math.round(dist);
-    document.getElementById("distance").innerText = distDisplay + " m";
+    const hud = document.getElementById("hud");
+    const distLabel = document.getElementById("distance");
+    distLabel.innerText = Math.round(dist) + " m";
 
-    // ARRIVAL LOGIC (10 meters)
-    if (dist <= 10 && !hasArrived) {
+    // --- UPDATED ARRIVAL LOGIC ---
+    if (dist <= 10) {
         hasArrived = true;
-        triggerArrival();
-    } else if (dist > 10) {
+        hud.innerText = `📍 ARRIVED AT ${DEST_NAME}`;
+        hud.classList.add("arrived-ui");
+        distLabel.style.color = "#ffd700";
+        arrowMesh.material.color.setHex(0xffd700);
+        if (navigator.vibrate) navigator.vibrate(200);
+    } else {
         hasArrived = false;
-        resetUI();
+        hud.innerText = `Target: ${DEST_NAME}`;
+        hud.classList.remove("arrived-ui");
+        distLabel.style.color = "#00ff00";
+        arrowMesh.material.color.setHex(0x00ff00);
+        
+        // Only fetch directions if we are still far away
+        try {
+            const url = `https://api.mapbox.com/directions/v5/mapbox/walking/${lng},${lat};${DESTINATION[0]},${DESTINATION[1]}?geometries=geojson&access_token=${MAPBOX_TOKEN}`;
+            const res = await fetch(url);
+            const data = await res.json();
+            if (data.routes && data.routes.length > 0) {
+                let nextPoint = data.routes[0].geometry.coordinates[1] || DESTINATION;
+                targetBearing = getBearing(lat, lng, nextPoint[1], nextPoint[0]);
+            }
+        } catch (e) { console.log("Route error"); }
     }
-
-    if (hasArrived) return; // Stop fetching routes if arrived
-
-    try {
-        const url = `https://api.mapbox.com/directions/v5/mapbox/walking/${lng},${lat};${DESTINATION[0]},${DESTINATION[1]}?geometries=geojson&access_token=${MAPBOX_TOKEN}`;
-        const res = await fetch(url);
-        const data = await res.json();
-        if (data.routes && data.routes.length > 0) {
-            let coords = data.routes[0].geometry.coordinates;
-            let nextPoint = coords.length > 1 ? coords[1] : DESTINATION;
-            targetBearing = getBearing(lat, lng, nextPoint[1], nextPoint[0]);
-        }
-    } catch (e) { console.log("Routing error"); }
-}
-
-function triggerArrival() {
-    const hud = document.getElementById("hud");
-    hud.innerText = "📍 ARRIVED AT SJT";
-    hud.classList.add("arrived");
-    document.getElementById("distance").style.color = "#ffd700";
-    arrowMesh.material.color.setHex(0xffd700); // Gold Arrow
-    
-    // Haptic Feedback (Android)
-    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-}
-
-function resetUI() {
-    const hud = document.getElementById("hud");
-    hud.innerText = "Target: SJT";
-    hud.classList.remove("arrived");
-    document.getElementById("distance").style.color = "#00ff00";
-    arrowMesh.material.color.setHex(0x00ff00);
 }
 
 function handleOrientation(e) {
-    let rawHeading = e.webkitCompassHeading || (360 - e.alpha);
-    let diff = rawHeading - lastRawHeading;
+    let raw = e.webkitCompassHeading || (360 - e.alpha);
+    let diff = raw - lastRawHeading;
     if (diff > 180) lastRawHeading += 360;
     if (diff < -180) lastRawHeading -= 360;
-    smoothHeading = smoothHeading + (rawHeading - smoothHeading) * 0.05;
+    smoothHeading = smoothHeading + (raw - smoothHeading) * 0.05;
     deviceHeading = (smoothHeading + 360) % 360;
-    lastRawHeading = rawHeading;
+    lastRawHeading = raw;
 }
 
 function animate() {
     requestAnimationFrame(animate);
     if (!isRunning) return;
 
-    let angleDiff = targetBearing - deviceHeading;
-    let targetRad = THREE.MathUtils.degToRad(angleDiff);
-    let currentRotation = arrowMesh.rotation.z;
-    let diff = targetRad - currentRotation;
+    let diff = THREE.MathUtils.degToRad(targetBearing - deviceHeading) - arrowMesh.rotation.z;
     while (diff < -Math.PI) diff += Math.PI * 2;
     while (diff > Math.PI) diff -= Math.PI * 2;
     arrowMesh.rotation.z += diff * 0.1;
 
-    // Arrival Animation: Bobbing
-    if (hasArrived) {
-        arrowMesh.position.y = -1.2 + Math.sin(Date.now() * 0.005) * 0.15;
-    } else {
-        arrowMesh.position.y = -1.2;
-    }
+    if (hasArrived) arrowMesh.position.y = -1.2 + Math.sin(Date.now() * 0.005) * 0.1;
 
     renderer.render(scene, camera);
 }
