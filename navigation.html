@@ -3,16 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>VIT AR Navigation - Q Block</title>
+    <title>VIT AR Navigation - SJT</title>
     <link href="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.css" rel="stylesheet">
     <style>
         body { margin: 0; overflow: hidden; background: black; font-family: 'Segoe UI', sans-serif; }
         #camera-feed { position: fixed; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; }
         #ar-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
-        #hud { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); padding: 12px 25px; border-radius: 30px; border: 2px solid #00ff00; color: white; font-size: 16px; z-index: 10; text-align: center; min-width: 230px; }
+        #hud { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); padding: 12px 25px; border-radius: 30px; border: 2px solid #00ff00; color: white; font-size: 16px; z-index: 10; text-align: center; min-width: 230px; transition: all 0.5s ease; }
         #distance { position: fixed; bottom: 190px; left: 50%; transform: translateX(-50%); color: #00ff00; font-size: 30px; font-weight: bold; text-shadow: 2px 2px 8px rgba(0,0,0,0.8); z-index: 10; }
         #mini-map { position: fixed; bottom: 20px; right: 20px; width: 160px; height: 160px; border-radius: 50%; border: 3px solid white; z-index: 10; overflow: hidden; background: black; box-shadow: 0 0 15px rgba(0,0,0,0.5); }
         #start-btn { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 20px 40px; font-size: 20px; background: #00ff00; border: none; border-radius: 50px; font-weight: bold; z-index: 100; cursor: pointer; box-shadow: 0 0 20px rgba(0,255,0,0.4); }
+        
+        /* Arrival Class */
+        .arrived { border-color: #ffd700 !important; color: #ffd700 !important; box-shadow: 0 0 20px #ffd700; }
     </style>
 </head>
 <body>
@@ -20,7 +23,7 @@
 <video id="camera-feed" autoplay playsinline muted></video>
 <canvas id="ar-canvas"></canvas>
 
-<div id="hud">Target: Q Block Hostel</div>
+<div id="hud">Target: SJT</div>
 <div id="distance">Waiting for GPS...</div>
 <div id="mini-map"></div>
 
@@ -32,7 +35,7 @@
 <script>
 /* --- CONFIG --- */
 const MAPBOX_TOKEN = "pk.eyJ1IjoiaGVtYW50aDg1MDMiLCJhIjoiY21rNzV5c2w2MHlqeTNncjI5bjkyeWJwaiJ9.NnunzAB_24Ntn83H5hRcyQ"; 
-const DESTINATION = [79.1664079, 12.9711674]; // [lng, lat]
+const DESTINATION = [79.163884, 12.971034]; // SJT [lng, lat]
 
 let scene, camera, renderer, arrowMesh;
 let map, userMarker;
@@ -42,15 +45,15 @@ let deviceHeading = 0;
 let smoothHeading = 0;
 let lastRawHeading = 0;
 let isRunning = false;
+let hasArrived = false;
 
 /* --- START AR --- */
 async function startAR() {
-    // 1. Request Compass Permission (iOS)
     if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function") {
         try {
             const response = await DeviceOrientationEvent.requestPermission();
             if (response !== "granted") {
-                alert("Compass permission denied. AR will not point correctly.");
+                alert("Compass permission denied.");
                 return;
             }
         } catch (e) { console.error(e); }
@@ -58,7 +61,6 @@ async function startAR() {
 
     document.getElementById("start-btn").style.display = "none";
 
-    // 2. Start Camera
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
         document.getElementById("camera-feed").srcObject = stream;
@@ -69,24 +71,20 @@ async function startAR() {
     initThree();
     initMap();
 
-    // 3. Start Sensors
-    navigator.geolocation.watchPosition(handleGPS, (err) => console.error("GPS Error", err), { enableHighAccuracy: true });
+    navigator.geolocation.watchPosition(handleGPS, (err) => console.error(err), { enableHighAccuracy: true });
     window.addEventListener("deviceorientation", handleOrientation, true);
 
     isRunning = true;
     animate();
 }
 
-/* --- THREE JS SETUP --- */
 function initThree() {
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    
     renderer = new THREE.WebGLRenderer({ canvas: document.getElementById("ar-canvas"), alpha: true, antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
 
-    // Arrow Design
     const shape = new THREE.Shape();
     shape.moveTo(0, 0.8);
     shape.lineTo(0.4, 0);
@@ -101,7 +99,7 @@ function initThree() {
     const material = new THREE.MeshPhongMaterial({ color: 0x00ff00, emissive: 0x003300 });
     
     arrowMesh = new THREE.Mesh(geometry, material);
-    arrowMesh.position.set(0, -1.2, -5); // Positioned slightly down in the HUD view
+    arrowMesh.position.set(0, -1.2, -5);
     arrowMesh.rotation.x = -Math.PI / 2;
     arrowMesh.scale.set(1.5, 1.5, 1.5);
     scene.add(arrowMesh);
@@ -118,7 +116,6 @@ function initThree() {
     });
 }
 
-/* --- MAPBOX SETUP --- */
 function initMap() {
     mapboxgl.accessToken = MAPBOX_TOKEN;
     map = new mapboxgl.Map({
@@ -132,43 +129,40 @@ function initMap() {
 
     map.on('load', () => {
         map.resize();
-        // Add destination marker
         new mapboxgl.Marker({ color: "#ff0000" }).setLngLat(DESTINATION).addTo(map);
-        // User marker
         userMarker = new mapboxgl.Marker({ color: "#00ff00" }).setLngLat([0,0]).addTo(map);
     });
 }
 
-/* --- GPS & ROUTING --- */
 async function handleGPS(pos) {
     const lat = pos.coords.latitude;
     const lng = pos.coords.longitude;
+    const dist = getDistance(lat, lng, DESTINATION[1], DESTINATION[0]);
 
     if (userMarker) userMarker.setLngLat([lng, lat]);
     
-    // Smoothly pan and rotate the map to match user movement
     if (map) {
-        map.easeTo({
-            center: [lng, lat],
-            bearing: deviceHeading,
-            duration: 1000
-        });
+        map.easeTo({ center: [lng, lat], bearing: deviceHeading, duration: 1000 });
     }
 
-    const dist = getDistance(lat, lng, DESTINATION[1], DESTINATION[0]);
-    document.getElementById("distance").innerText = Math.round(dist) + " m";
+    const distDisplay = Math.round(dist);
+    document.getElementById("distance").innerText = distDisplay + " m";
 
-    if (dist < 15) {
-        document.getElementById("hud").innerText = "ARRIVED AT Q BLOCK";
-        arrowMesh.material.color.setHex(0xffd700);
+    // ARRIVAL LOGIC (10 meters)
+    if (dist <= 10 && !hasArrived) {
+        hasArrived = true;
+        triggerArrival();
+    } else if (dist > 10) {
+        hasArrived = false;
+        resetUI();
     }
 
-    // Get Walking Directions for more accurate bearing
+    if (hasArrived) return; // Stop fetching routes if arrived
+
     try {
         const url = `https://api.mapbox.com/directions/v5/mapbox/walking/${lng},${lat};${DESTINATION[0]},${DESTINATION[1]}?geometries=geojson&access_token=${MAPBOX_TOKEN}`;
         const res = await fetch(url);
         const data = await res.json();
-
         if (data.routes && data.routes.length > 0) {
             let coords = data.routes[0].geometry.coordinates;
             let nextPoint = coords.length > 1 ? coords[1] : DESTINATION;
@@ -177,57 +171,62 @@ async function handleGPS(pos) {
     } catch (e) { console.log("Routing error"); }
 }
 
-/* --- COMPASS LOGIC (Smoothing) --- */
+function triggerArrival() {
+    const hud = document.getElementById("hud");
+    hud.innerText = "📍 ARRIVED AT SJT";
+    hud.classList.add("arrived");
+    document.getElementById("distance").style.color = "#ffd700";
+    arrowMesh.material.color.setHex(0xffd700); // Gold Arrow
+    
+    // Haptic Feedback (Android)
+    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+}
+
+function resetUI() {
+    const hud = document.getElementById("hud");
+    hud.innerText = "Target: SJT";
+    hud.classList.remove("arrived");
+    document.getElementById("distance").style.color = "#00ff00";
+    arrowMesh.material.color.setHex(0x00ff00);
+}
+
 function handleOrientation(e) {
-    let rawHeading = 0;
-
-    if (e.webkitCompassHeading) {
-        rawHeading = e.webkitCompassHeading; // iOS
-    } else if (e.alpha !== null) {
-        rawHeading = 360 - e.alpha; // Android
-    }
-
-    // Fix the 360 -> 0 degree jump jitter
+    let rawHeading = e.webkitCompassHeading || (360 - e.alpha);
     let diff = rawHeading - lastRawHeading;
     if (diff > 180) lastRawHeading += 360;
     if (diff < -180) lastRawHeading -= 360;
-
-    // Stronger Low-Pass Filter (0.05 is very smooth)
     smoothHeading = smoothHeading + (rawHeading - smoothHeading) * 0.05;
     deviceHeading = (smoothHeading + 360) % 360;
     lastRawHeading = rawHeading;
 }
 
-/* --- ANIMATION LOOP --- */
 function animate() {
     requestAnimationFrame(animate);
     if (!isRunning) return;
 
-    // Calculate relative angle between device and destination
     let angleDiff = targetBearing - deviceHeading;
     let targetRad = THREE.MathUtils.degToRad(angleDiff);
-
-    // Smoothly rotate the arrow mesh
-    // We adjust Z because the arrow is rotated -90 on X
-    let lerpFactor = 0.1;
     let currentRotation = arrowMesh.rotation.z;
-    
-    // Shortest path rotation logic
     let diff = targetRad - currentRotation;
     while (diff < -Math.PI) diff += Math.PI * 2;
     while (diff > Math.PI) diff -= Math.PI * 2;
-    
-    arrowMesh.rotation.z += diff * lerpFactor;
+    arrowMesh.rotation.z += diff * 0.1;
+
+    // Arrival Animation: Bobbing
+    if (hasArrived) {
+        arrowMesh.position.y = -1.2 + Math.sin(Date.now() * 0.005) * 0.15;
+    } else {
+        arrowMesh.position.y = -1.2;
+    }
 
     renderer.render(scene, camera);
 }
 
-/* --- MATH UTILS --- */
 function getDistance(lat1, lon1, lat2, lon2) {
     const R = 6371e3;
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
