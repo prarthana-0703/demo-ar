@@ -12,9 +12,9 @@
 
 <a-scene
 embedded
-renderer="antialias: true; colorManagement: true;"
+renderer="antialias: true;"
 vr-mode-ui="enabled:false"
-arjs="sourceType: webcam; debugUIEnabled:false;">
+arjs="sourceType: webcam; debugUIEnabled:false; trackingMethod: best;">
 
 <a-assets>
 <img id="photo1" src="Screenshot 2026-03-12 001948.png">
@@ -23,13 +23,15 @@ arjs="sourceType: webcam; debugUIEnabled:false;">
 <img id="photo4" src="couple4.jpg">
 </a-assets>
 
+<!-- Marker -->
 <a-marker
 preset="hiro"
 smooth="true"
-smoothCount="15"
+smoothCount="30"
 smoothTolerance="0.01"
-smoothThreshold="5">
+smoothThreshold="10">
 
+<!-- Title -->
 <a-text
 value="Our Journey"
 position="0 0.6 -1.2"
@@ -39,26 +41,27 @@ rotation="-90 0 0"
 scale="1.3 1.3 1.3">
 </a-text>
 
+<!-- Gallery Animation -->
 <a-entity
 id="gallery-container"
 position="0 0.1 0"
 animation="property: position;
-from: 1.5 0.1 0;
-to: -1.5 0.1 0;
-dur: 10000;
-dir: alternate;
-loop: true;
-easing: linear">
+           from: 0.8 0.1 0;
+           to: -0.8 0.1 0;
+           dur: 12000;
+           dir: alternate;
+           loop: true;
+           easing: linear">
 
 <!-- PHOTO 1 -->
-<a-entity position="-1.5 0 0">
+<a-entity position="-1.2 0 0">
 
 <a-plane
 color="#FFD700"
 width="1.3"
 height="1.7"
 rotation="-90 0 0"
-position="0 0 -0.03">
+position="0 0 -0.04">
 </a-plane>
 
 <a-image
@@ -80,7 +83,7 @@ color="#FFD700"
 width="1.3"
 height="1.7"
 rotation="-90 0 0"
-position="0 0 -0.03">
+position="0 0 -0.04">
 </a-plane>
 
 <a-image
@@ -95,14 +98,14 @@ material="transparent:true; side:double; alphaTest:0.5">
 </a-entity>
 
 <!-- PHOTO 3 -->
-<a-entity position="1.5 0 0">
+<a-entity position="1.2 0 0">
 
 <a-plane
 color="#FFD700"
 width="1.3"
 height="1.7"
 rotation="-90 0 0"
-position="0 0 -0.03">
+position="0 0 -0.04">
 </a-plane>
 
 <a-image
@@ -117,14 +120,14 @@ material="transparent:true; side:double; alphaTest:0.5">
 </a-entity>
 
 <!-- PHOTO 4 -->
-<a-entity position="3 0 0">
+<a-entity position="2.4 0 0">
 
 <a-plane
 color="#FFD700"
 width="1.3"
 height="1.7"
 rotation="-90 0 0"
-position="0 0 -0.03">
+position="0 0 -0.04">
 </a-plane>
 
 <a-image
@@ -140,6 +143,7 @@ material="transparent:true; side:double; alphaTest:0.5">
 
 </a-entity>
 
+<!-- Ground -->
 <a-plane
 position="0 0 0"
 rotation="-90 0 0"
@@ -151,7 +155,8 @@ opacity="0.25">
 
 </a-marker>
 
-<a-entity camera></a-entity>
+<!-- Camera -->
+<a-entity camera look-controls="enabled:false"></a-entity>
 
 </a-scene>
 
