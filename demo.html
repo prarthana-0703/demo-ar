@@ -1,68 +1,109 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>AR Wedding Invitation</title>
-
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+  <title>AR Personalized Invitation</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/ar.js@3.3.2/aframe/build/aframe-ar.js"></script>
 
   <style>
-    body { margin: 0; overflow: hidden; }
-    #messageBox {
+    body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    video { z-index: -1; }
+    
+    #ui-overlay {
       position: absolute;
-      bottom: 20px;
+      top: 10%;
       width: 100%;
       text-align: center;
-      font-size: 18px;
+      z-index: 10;
+      pointer-events: none; /* Allows clicking through to the scene */
+    }
+
+    #startBtn {
+      position: absolute;
+      bottom: 50px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 15px 30px;
+      background: #ff477e;
       color: white;
-      background: rgba(0,0,0,0.6);
-      padding: 10px;
+      border: none;
+      border-radius: 50px;
+      font-weight: bold;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      cursor: pointer;
+      pointer-events: auto;
+      z-index: 20;
     }
   </style>
 </head>
 
 <body>
 
-<div id="messageBox">Loading AR...</div>
+  <div id="ui-overlay">
+    <button id="startBtn">TAP TO OPEN INVITATION</button>
+  </div>
 
-<a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
+  <a-scene 
+    embedded 
+    arjs="sourceType: webcam; debugUIEnabled: false;"
+    vr-mode-ui="enabled: false">
 
-  <a-marker type="pattern"
-            url="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/three.js/data/patt.hiro">
+    <a-marker type="pattern" url="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/three.js/data/patt.hiro">
+      
+      <a-entity id="textContainer" position="0 1 0">
+        <a-text id="arText"
+                value="Loading..."
+                align="center"
+                color="#FFD700"
+                font="https://cdn.aframe.io/fonts/Monoid.fnt"
+                scale="1.2 1.2 1.2"
+                animation="property: position; from: 0 0.8 0; to: 0 1.2 0; dir: alternate; dur: 2000; loop: true; easing: easeInOutSine">
+        </a-text>
+      </a-entity>
 
-    <a-text id="arText"
-            value="Welcome 💖"
-            position="0 0.5 0"
-            align="center"
-            color="yellow">
-    </a-text>
+      <a-torus-knot 
+        radius="0.4" 
+        radius-tubular="0.05" 
+        position="0 0.2 0" 
+        rotation="90 0 0"
+        material="color: #ff477e; opacity: 0.8;"
+        animation="property: rotation; to: 90 360 0; loop: true; dur: 5000; easing: linear"
+        animation__pulse="property: scale; from: 1 1 1; to: 1.1 1.1 1.1; dir: alternate; dur: 1000; loop: true">
+      </a-torus-knot>
 
-    <a-box position="0 0 0" color="red"></a-box>
+    </a-marker>
 
-  </a-marker>
+    <a-entity camera></a-entity>
+  </a-scene>
 
-  <a-entity camera></a-entity>
-</a-scene>
+  <script>
+    // Personalized Messages Database
+    const coupleData = {
+      "rahul": "Rahul & Sneha\nTogether Forever 💍",
+      "prarthana": "Prarthana & Partner\nSave the Date! ✨",
+      "priya": "Priya & Amit\nA Match Made in Heaven ❤️"
+    };
 
-<script>
-  const messages = {
-    "rahul": "Hey Rahul! 💍 You're invited!",
-    "priya": "Dear Priya ❤️ Join us!",
-  };
+    // Get name from URL: yourlink.html?name=rahul
+    const params = new URLSearchParams(window.location.search);
+    let name = params.get("name") || "guest";
+    name = name.toLowerCase();
+    
+    // Choose message
+    let personalizedMsg = coupleData[name] || "A Special Invitation\nJust For You 💖";
 
-  // Get name from URL
-  const params = new URLSearchParams(window.location.search);
-  let name = params.get("name") || "guest";
+    // Inject into AR
+    const arTextElement = document.querySelector("#arText");
+    arTextElement.setAttribute("value", personalizedMsg);
 
-  name = name.toLowerCase();
-
-  let msg = messages[name] || "Welcome! You are invited 💖";
-
-  document.getElementById("messageBox").innerText = msg;
-  document.querySelector("#arText").setAttribute("value", msg);
-</script>
+    // Interaction to start
+    document.getElementById('startBtn').addEventListener('click', function() {
+      this.style.display = 'none';
+      document.querySelector('a-scene').play();
+    });
+  </script>
 
 </body>
 </html>
