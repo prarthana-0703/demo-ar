@@ -1,81 +1,44 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AR Wedding Invitation</title>
+  <meta charset="utf-8">
+  <title>Hiro Marker Cube</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <!-- Stable versions -->
-    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/ar.js@3.3.2/aframe/build/aframe-ar.js"></script>
+  <!-- A-Frame -->
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
 
-    <style>
-        body { margin: 0; overflow: hidden; }
+  <!-- AR.js (stable CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/ar.js@3.3.2/aframe/build/aframe-ar.js"></script>
 
-        #messageBox {
-            position: absolute;
-            bottom: 20px;
-            width: 100%;
-            text-align: center;
-            color: white;
-            background: rgba(0,0,0,0.6);
-            padding: 10px;
-            font-size: 18px;
-        }
-    </style>
+  <style>
+    body { margin: 0; overflow: hidden; }
+  </style>
 </head>
 
 <body>
 
-<div id="messageBox">Initializing AR...</div>
+<a-scene
+  embedded
+  vr-mode-ui="enabled: false"
+  arjs="sourceType: webcam; facingMode: environment; debugUIEnabled: false;">
 
-<a-scene 
-    embedded
-    vr-mode-ui="enabled: false"
-    arjs="sourceType: webcam; facingMode: environment; debugUIEnabled: false;">
+  <!-- Hiro Marker -->
+  <a-marker type="pattern"
+            url="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/three.js/data/patt.hiro">
 
-    <!-- Marker -->
-    <a-marker type="pattern"
-        url="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/three.js/data/patt.hiro">
+    <!-- Rotating Cube -->
+    <a-box position="0 0.5 0"
+           material="color: red"
+           animation="property: rotation; to: 0 360 0; loop: true; dur: 3000">
+    </a-box>
 
-        <a-text id="text"
-                value="Loading..."
-                position="0 0.5 0"
-                align="center"
-                color="yellow"
-                scale="1.5 1.5 1.5">
-        </a-text>
+  </a-marker>
 
-        <a-box position="0 0 0"
-               color="#ff477e"
-               animation="property: rotation; to: 0 360 0; loop: true; dur: 3000">
-        </a-box>
+  <!-- Camera -->
+  <a-entity camera></a-entity>
 
-    </a-marker>
-
-    <a-entity camera></a-entity>
 </a-scene>
-
-<script>
-    const messages = {
-        "rahul": "Hey Rahul 💍 You're invited!",
-        "priya": "Dear Priya ❤️ Join us!",
-    };
-
-    // Get name from URL
-    const params = new URLSearchParams(window.location.search);
-    let name = params.get("name") || "guest";
-    name = name.toLowerCase();
-
-    let msg = messages[name] || `Welcome ${name} 💖`;
-
-    document.getElementById("messageBox").innerText = msg;
-
-    // Wait for scene to load before updating text
-    document.querySelector("a-scene").addEventListener("loaded", () => {
-        document.querySelector("#text").setAttribute("value", msg);
-    });
-</script>
 
 </body>
 </html>
